@@ -106,6 +106,11 @@ const rewriteTextForTTS = async (
   rowIndex?: number | null
 ): Promise<string> => {
   try {
+    // 빈 텍스트면 재작성 호출 자체를 하지 않음
+    if (!originalText || !originalText.trim()) {
+      return originalText;
+    }
+
     const response = await fetch('/api/tts-rewrite', {
       method: 'POST',
       headers: {
@@ -124,7 +129,7 @@ const rewriteTextForTTS = async (
     }
 
     const data = await response.json();
-    if (data.success && data.rewrittenText) {
+    if (typeof data?.rewrittenText === 'string' && data.rewrittenText.trim()) {
       return data.rewrittenText;
     }
 

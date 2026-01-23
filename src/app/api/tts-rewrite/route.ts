@@ -27,16 +27,33 @@ import { getTokenTotal, updateTokenTotal } from '../chat/route';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const originalText = body?.text || '';
+    const body = await request.json().catch(() => ({} as any));
+    const originalText = String(body?.text ?? '');
     const sessionId = body?.sessionId || null;
     const rowIndex = body?.rowIndex || null;
 
+    // 클라이언트가 "재작성"을 요청했지만 입력이 비어있는 경우:
+    // 프로덕션에서 4xx로 떨어져 프론트가 noisy해지는 걸 막기 위해
+    // 원문 그대로(또는 빈 값)로 안전하게 성공 응답을 반환한다.
     if (!originalText || originalText.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'text is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        skipped: 'empty_text',
+        originalText,
+        rewrittenText: originalText,
+        tokens: { input: 0, output: 0, total: 0 },
+      });
+    }
+
+    // 환경변수가 없으면(특히 Vercel 배포 직후) 재작성은 스킵하고 원문을 반환
+    if (!CLOVA_KEY) {
+      return NextResponse.json({
+        success: false,
+        skipped: 'missing_clova_api_key',
+        originalText,
+        rewrittenText: originalText.trim(),
+        tokens: { input: 0, output: 0, total: 0 },
+      });
     }
 
     // CLOVA Chat API를 사용하여 텍스트 재작성
@@ -87,10 +104,16 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('CLOVA API error:', response.status, errorText);
-      return NextResponse.json(
-        { error: 'Failed to rewrite text', details: errorText },
-        { status: response.status }
-      );
+      // 업스트림 실패는 프로덕션 UX 관점에서 "재작성 스킵"으로 처리
+      // (프론트에서 4xx/5xx로 noisy하게 로그가 찍히는 걸 방지)
+      return NextResponse.json({
+        success: false,
+        skipped: 'clova_error',
+        upstreamStatus: response.status,
+        originalText,
+        rewrittenText: originalText.trim(),
+        tokens: { input: 0, output: 0, total: 0 },
+      });
     }
 
     const json = await response.json();
@@ -133,13 +156,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('TTS rewrite error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    // 내부 오류도 프론트에서 noisy하게 찍히지 않도록, 가능한 한 안전한 fallback 응답
+    // (원문 텍스트를 못 얻는 상황이 있을 수 있어 빈 문자열로 반환)
+    return NextResponse.json({
+      success: false,
+      skipped: 'internal_error',
+      originalText: '',
+      rewrittenText: '',
+      error: error instanceof Error ? error.message : String(error),
+      tokens: { input: 0, output: 0, total: 0 },
+    });
   }
 }
 
