@@ -1984,7 +1984,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     }
   }, [chatState, isConversationEnded, pushAssistantMessage, scrollToTop, selectedOnboardingOption, generateThinkingText, assistantMessages.length, createCombinedTTSText]);
 
-  const handleContinueRecommendation = useCallback(async () => {
+  const handleContinueRecommendation = useCallback(async (sourceAssistantMessage?: Message) => {
     if (chatState.isLoading || isConversationEnded) return;
     
     // 6번째 질문까지 허용 확인
@@ -2000,6 +2000,15 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       console.error('첫 번째 질문 또는 답변을 찾을 수 없습니다.');
       return;
     }
+
+    // "계속 추천"은 사용자가 '잘 맞아요'를 누른 답변 컨테이너의 방향을 이어가는 액션이므로,
+    // 해당 답변(또는 최근 답변)의 questionCategory를 그대로 다음 답변에도 붙여서
+    // 카테고리 더미 이미지 div가 안정적으로 렌더링되도록 한다.
+    const resolvedQuestionCategory: QuestionCategory =
+      sourceAssistantMessage?.questionCategory ??
+      ([...chatState.messages]
+        .reverse()
+        .find((msg) => msg.role === 'assistant' && msg.questionCategory)?.questionCategory ?? null);
     
     // 두 번째 질문으로 '이 방향으로 추천' 사용
     const secondQuestion = '이 방향으로 추천';
@@ -2053,6 +2062,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
           tokens: data.tokens,
           hits: data.hits,
           defaultAnswer: '(응답 없음)',
+          questionCategory: resolvedQuestionCategory,
         });
         
         chatState.setIsLoading(false);
@@ -2069,7 +2079,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       // 에러 발생 시에도 STT 텍스트 초기화
       setLastUserMessageText(null);
     }
-  }, [chatState, isConversationEnded, pushAssistantMessage, generateThinkingText, createUserMessage]);
+  }, [chatState, isConversationEnded, pushAssistantMessage, generateThinkingText, createUserMessage, assistantMessages.length]);
 
   const renderRecommendationChips = useCallback((additionalMarginTop?: number, compact?: boolean, shouldAnimate?: boolean) => {
     if (isConversationEnded) return null;
@@ -2687,7 +2697,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
                                       onFeedback={(feedback) => {
                                         setFeedbackPreference(feedback);
                                       }}
-                                      onContinueRecommendation={handleContinueRecommendation}
+                                      onContinueRecommendation={() => handleContinueRecommendation(message)}
                                     />
                                   </div>
                                 );
