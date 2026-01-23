@@ -1366,7 +1366,9 @@ const SegmentedMessageComponent: React.FC<{
                 <div
                   style={{
                     width: '100%',
-                    minHeight: 'min(70vh, 500px)', // iPhone 최적화: 60vh -> 70vh, 400px -> 500px
+                    // iPhone Safari에서 vh 기반 높이가 PC 대비 과도하게 낮아지는 문제를 방지하기 위해
+                    // 최소 높이를 500px로 보장 (PC에서 보이는 기본 높이와 일치)
+                    minHeight: '500px',
                     maxHeight: '80vh', // iPhone 최적화: 70vh -> 80vh
                     borderRadius: '16px',
                     overflow: 'hidden',
@@ -1396,7 +1398,7 @@ const SegmentedMessageComponent: React.FC<{
                       style={{
                         width: '100%',
                         height: '100%',
-                        minHeight: 'min(70vh, 500px)', // iPhone 최적화: 60vh -> 70vh, 400px -> 500px
+                        minHeight: '500px',
                         maxHeight: '80vh', // iPhone 최적화: 70vh -> 80vh
                         background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 50%, #e0e7ff 100%)',
                         display: 'flex',
@@ -1931,7 +1933,9 @@ const SingleMessageComponent: React.FC<{
                 <div
                   style={{
                     width: '100%',
-                    minHeight: 'min(70vh, 500px)', // iPhone 최적화: 60vh -> 70vh, 400px -> 500px
+                    // iPhone Safari에서 vh 기반 높이가 PC 대비 과도하게 낮아지는 문제를 방지하기 위해
+                    // 최소 높이를 500px로 보장 (PC에서 보이는 기본 높이와 일치)
+                    minHeight: '500px',
                     maxHeight: '80vh', // iPhone 최적화: 70vh -> 80vh
                     borderRadius: '16px',
                     overflow: 'hidden',
@@ -1961,7 +1965,7 @@ const SingleMessageComponent: React.FC<{
                       style={{
                         width: '100%',
                         height: '100%',
-                        minHeight: 'min(70vh, 500px)', // iPhone 최적화: 60vh -> 70vh, 400px -> 500px
+                        minHeight: '500px',
                         maxHeight: '80vh', // iPhone 최적화: 70vh -> 80vh
                         background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 50%, #e0e7ff 100%)',
                         display: 'flex',
