@@ -1046,6 +1046,8 @@ const FeedbackComponent: React.FC<{
                 fontWeight: 500,
                 lineHeight: '140%',
                 letterSpacing: '-0.56px',
+                // 문자열에 포함된 '\n'이 실제 줄바꿈으로 렌더링되도록 처리
+                whiteSpace: 'pre-line',
               }}
             >
               {selectedFeedback && feedbackMessages[selectedFeedback]}
