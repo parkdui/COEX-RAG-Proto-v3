@@ -1,0 +1,573 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+Copyright (c) 2021 Kil Hyung-jin, with Reserved Font Name Pretendard.
+https://github.com/orioncactus/pretendard
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+*/
+
+@font-face {
+	font-family: 'Pretendard Variable';
+	font-weight: 45 920;
+	font-style: normal;
+	font-display: swap;
+	src: url('/fonts/woff2/PretendardVariable.woff2') format('woff2-variations');
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
+/* 모바일 최적화 */
+@layer utilities {
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+  
+  .touch-manipulation {
+    touch-action: manipulation;
+}
+
+  .recommendation-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Gradient Animation */
+  @keyframes gradient-rotate {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .animate-gradient {
+    background: linear-gradient(
+      -45deg,
+      #E987FE,
+      #FFE68A,
+      #C629FF,
+      #E987FE
+    );
+    background-size: 400% 400%;
+    animation: gradient-rotate 15s ease infinite;
+  }
+  
+  /* Sori Gradient 1회 재생 - GradientText와 호환 */
+  .sori-gradient-once {
+    display: inline-block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    cursor: default !important;
+  }
+  
+  /* GradientText의 외부 div 스타일 조정 */
+  .sori-gradient-once > div {
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: inline-block !important;
+    font-weight: 700 !important;
+  }
+  
+  /* GradientText 내부의 gradient div - 1회만 재생 */
+  .sori-gradient-once .animate-gradient {
+    animation: soriGradient 3s ease-in-out 1 forwards !important;
+    overflow: visible !important;
+    font-weight: 700 !important;
+  }
+  
+  /* span에 gradient 적용 - 전체 텍스트에 하나의 gradient */
+  .sori-gradient-once .animate-gradient span {
+    background: inherit !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 700 !important;
+  }
+  
+  /* Highlight Rotate Animation */
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Text Pressure Loop Animation */
+  @keyframes textPressureLoop {
+    0%, 100% {
+      font-weight: 700;
+      transform: scale(1);
+    }
+    50% {
+      font-weight: 300;
+      transform: scale(0.95);
+    }
+  }
+  
+  /* Sori Letter Color Animation */
+  /* 모든 글자가 동일한 애니메이션 패턴: #000 → #fff → #000 (그 후 #000이 5초 더 지속) */
+  /* 초기 색상만 다름: S(#000), o(#333), r(#666), i(#000) */
+  /* 전체 주기: 6초 (0-8.33%: #000→#fff (0-0.5초), 8.33-16.67%: #fff→#000 (0.5-1초), 16.67-100%: #000 유지 (1-6초)) */
+  
+  /* S: #000(시작) → #fff → #000 → #000 유지 */
+  @keyframes soriLetterColorS {
+    0%, 16.67%, 100% {
+      color: #000000;
+    }
+    8.33% {
+      color: #ffffff;
+    }
+  }
+  
+  /* o: #333(시작) → #000 → #fff → #000 → #000 유지 → #333 */
+  @keyframes soriLetterColorO {
+    0%, 100% {
+      color: #333333;
+    }
+    1.25% {
+      color: #000000;
+    }
+    8.33% {
+      color: #ffffff;
+    }
+    16.67%, 98.75% {
+      color: #000000;
+    }
+  }
+  
+  /* r: #666(시작) → #000 → #fff → #000 → #000 유지 → #666 */
+  @keyframes soriLetterColorR {
+    0%, 100% {
+      color: #666666;
+    }
+    1.25% {
+      color: #000000;
+    }
+    8.33% {
+      color: #ffffff;
+    }
+    16.67%, 98.75% {
+      color: #000000;
+    }
+  }
+  
+  /* i: #000(시작) → #fff → #000 → #000 유지 */
+  @keyframes soriLetterColorI {
+    0%, 16.67%, 100% {
+      color: #000000;
+    }
+    8.33% {
+      color: #ffffff;
+    }
+  }
+  
+  /* Sori Color Gradient Animation */
+  @keyframes soriGradient {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .sori-gradient-animation {
+    background: linear-gradient(
+      90deg,
+      #E987FE 0%,
+      #FFE68A 25%,
+      #C629FF 50%,
+      #FFE68A 75%,
+      #E987FE 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: soriGradient 3s ease-in-out infinite;
+  }
+  
+  .sori-gradient-animation * {
+    background: inherit;
+    -webkit-background-clip: inherit;
+    background-clip: inherit;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  
+  /* Thinking Text Gradient Animation - cyan-800 기반 흰색 혼합 */
+  @keyframes thinkingGradient {
+    0% {
+      background-position: 200% 50%; /* 왼쪽에서 시작 */
+    }
+    100% {
+      background-position: 0% 50%; /* 오른쪽으로 이동 완료, 다음 사이클 시작점과 seamless 연결 */
+    }
+  }
+  
+  .thinking-gradient-animation {
+    background: linear-gradient(
+      90deg,
+      /* 첫 번째 패턴 - #155e75 구간이 매우 길게 설정 */
+      #155e75 0%,
+      #155e75 30%,
+      #7dd3fc 35%,
+      #ffffff 40%,
+      #7dd3fc 45%,
+      #155e75 50%,
+      /* 중간 #155e75 구간 확대 (50%-70%) */
+      #155e75 50%,
+      #155e75 70%,
+      /* 두 번째 패턴 시작 - seamless 반복 */
+      #7dd3fc 75%,
+      #ffffff 80%,
+      #7dd3fc 85%,
+      #155e75 90%,
+      #155e75 100%
+    );
+    background-size: 200% 100%; /* 한 패턴 크기 */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: thinkingGradient 5s linear infinite; /* 속도 약간 조정 */
+  }
+  
+  .thinking-gradient-animation-line {
+    display: block;
+    background: linear-gradient(
+      90deg,
+      /* 첫 번째 패턴 - #155e75 구간이 매우 길게 설정 */
+      #155e75 0%,
+      #155e75 30%,
+      #7dd3fc 35%,
+      #ffffff 40%,
+      #7dd3fc 45%,
+      #155e75 50%,
+      /* 중간 #155e75 구간 확대 (50%-70%) */
+      #155e75 50%,
+      #155e75 70%,
+      /* 두 번째 패턴 시작 - seamless 반복 */
+      #7dd3fc 75%,
+      #ffffff 80%,
+      #7dd3fc 85%,
+      #155e75 90%,
+      #155e75 100%
+    );
+    background-size: 200% 100%; /* 한 패턴 크기 */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: thinkingGradient 5s linear infinite; /* 속도 약간 조정 */
+  }
+  
+  .thinking-gradient-animation * {
+    background: inherit;
+    -webkit-background-clip: inherit;
+    background-clip: inherit;
+    -webkit-text-fill-color: inherit;
+    color: transparent;
+  }
+  
+  /* Sori Gradient Wrapper - TextPressure와 호환 */
+  .sori-gradient-wrapper {
+    display: inline-block;
+  }
+  
+  .sori-gradient-wrapper > div {
+    background: linear-gradient(
+      90deg,
+      #E987FE 0%,
+      #FFE68A 25%,
+      #C629FF 50%,
+      #FFE68A 75%,
+      #E987FE 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: soriGradient 3s ease-in-out infinite;
+  }
+  
+  .sori-gradient-wrapper > div > div {
+    background: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .sori-gradient-wrapper span {
+    background: inherit;
+    -webkit-background-clip: inherit;
+    background-clip: inherit;
+    -webkit-text-fill-color: inherit;
+    color: transparent;
+  }
+  
+  /* 스크롤바 숨김 */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Blurry Spinning Gradient Animation - 참고 CSS 기반 */
+  @keyframes spinGradient {
+    0% {
+      transform: translate(-50%, -50%) rotate(0deg) scale(2);
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(360deg) scale(2);
+    }
+  }
+  
+  .assistant-glass-content.animate-radial-gradient {
+    position: relative;
+    overflow: hidden;
+    background: transparent !important; /* Gradient가 보이도록 투명하게 변경 */
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  /* Individual blobs */
+  .assistant-glass-content.animate-radial-gradient .blob {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: block;
+    position: absolute;
+    filter: blur(30px);
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  .assistant-glass-content.animate-radial-gradient .blob-1 {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 1) 0%, rgba(235, 201, 255, 1) 100%);
+    top: 20%;
+    left: 10%;
+    animation: floatBlob1 8s ease-in-out infinite;
+  }
+  
+  .assistant-glass-content.animate-radial-gradient .blob-2 {
+    width: 180px;
+    height: 180px;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 1) 0%, rgba(165, 238, 255, 1) 100%);
+    top: 50%;
+    right: 15%;
+    animation: floatBlob2 10s ease-in-out infinite;
+  }
+  
+  .assistant-glass-content.animate-radial-gradient .blob-3 {
+    width: 140px;
+    height: 140px;
+    background: linear-gradient(0deg, rgba(235, 201, 255, 1) 0%, rgba(165, 238, 255, 1) 100%);
+    bottom: 20%;
+    left: 50%;
+    animation: floatBlob3 12s ease-in-out infinite;
+  }
+  
+  @keyframes floatBlob1 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+      transform: translate(30px, -20px) rotate(90deg);
+    }
+    50% {
+      transform: translate(-20px, 30px) rotate(180deg);
+    }
+    75% {
+      transform: translate(20px, 20px) rotate(270deg);
+    }
+  }
+  
+  @keyframes floatBlob2 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+      transform: translate(-40px, 30px) rotate(120deg);
+    }
+    66% {
+      transform: translate(30px, -40px) rotate(240deg);
+    }
+  }
+  
+  @keyframes floatBlob3 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+      transform: translate(-30px, -30px) rotate(90deg);
+    }
+    50% {
+      transform: translate(40px, 20px) rotate(180deg);
+    }
+    75% {
+      transform: translate(-20px, 40px) rotate(270deg);
+    }
+  }
+  
+  .assistant-glass-content.animate-radial-gradient .assistant-glass-body {
+    position: relative;
+    z-index: 1; /* 텍스트가 gradient 위에 표시되도록 */
+    filter: none; /* 텍스트는 blur 제거 */
+  }
+  
+  /* Fade In Animation for AI Answer */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Loading to Answer Transition */
+  .loading-to-answer-transition {
+    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  }
+}
+
+/* 모바일에서 스크롤 개선 */
+@media (max-width: 768px) {
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* iOS Safari에서 키보드 올라올 때 레이아웃 깨짐 방지 */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* 모바일에서 버튼 터치 피드백 개선 */
+@media (hover: none) and (pointer: coarse) {
+  button:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* 모바일에서 입력 필드 포커스 개선 */
+@media (max-width: 768px) {
+  input:focus {
+    font-size: 16px; /* iOS에서 줌 방지 */
+  }
+}
+
+/* 랜딩 페이지 및 온보딩 페이지 모바일 최적화 */
+@media (max-width: 768px) {
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* 터치 영역 최적화 */
+  button {
+    min-height: 44px; /* iOS 권장 터치 영역 */
+    min-width: 44px;
+  }
+  
+  /* 그라데이션 성능 최적화 */
+  .bg-gradient-to-b,
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
+    will-change: auto;
+  }
+  
+  /* 스크롤 개선 */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 하단 고정 레이아웃 강화 */
+  .bottom-fixed-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: inherit;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  /* 메인 페이지 하단 입력 영역 최적화 */
+  .main-input-area {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: rgba(31, 41, 55, 0.95); /* 다크 모드용 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(75, 85, 99, 0.3);
+  }
+  
+  /* 라이트 모드용 메인 입력 영역 */
+  .light-mode .main-input-area {
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(229, 231, 235, 0.3);
+  }
+  
+  /* 하단 여백 추가 (iOS 홈 인디케이터 고려) */
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+  
+  /* 화면 하단 고정 버튼 영역 */
+  .fixed-bottom-button {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.9), transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
