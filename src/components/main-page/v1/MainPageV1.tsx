@@ -1150,7 +1150,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         setLastUserMessageText(recognizedText);
         
         // thinkingText 생성 (STT 처리된 텍스트에서)
-        generateThinkingText(recognizedText);
+        // 음성 입력일 때는 thinkingText를 커스텀하지 않고 기본 문구('생각 중이에요')를 유지
+        setCustomThinkingText(undefined);
         
         const userMessage = createUserMessage(recognizedText);
         chatState.addMessage(userMessage);
@@ -1282,7 +1283,6 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     chatState.systemPrompt,
     voiceState.setIsProcessingVoice,
     pushAssistantMessage,
-    generateThinkingText,
     userTurnCount
   ]);
 
