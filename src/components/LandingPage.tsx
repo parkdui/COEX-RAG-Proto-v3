@@ -59,6 +59,7 @@ export default function LandingPage({ onStart, showBlob = true }: LandingPagePro
   const [isLoadingCount, setIsLoadingCount] = useState(true);
   const [hasCountingStarted, setHasCountingStarted] = useState(false);
   const [showVideo, setShowVideo] = useState(true);
+  const [isOpeningVideoEnabled, setIsOpeningVideoEnabled] = useState(true);
   const [showBlobBackground, setShowBlobBackground] = useState(false);
   const [videoOpacity, setVideoOpacity] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -81,6 +82,47 @@ export default function LandingPage({ onStart, showBlob = true }: LandingPagePro
 
     fetchConversationCount();
   }, []);
+
+  // opening 비디오 토글 상태 로드/저장 (새로고침 유지)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('coex_opening_video_enabled');
+      if (raw === null) return;
+      setIsOpeningVideoEnabled(raw === 'true');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('coex_opening_video_enabled', String(isOpeningVideoEnabled));
+    } catch {
+      // ignore
+    }
+  }, [isOpeningVideoEnabled]);
+
+  // 토글 OFF: 비디오 즉시 중단/숨김. 토글 ON: 비디오를 처음부터 다시 재생.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!isOpeningVideoEnabled) {
+      if (video) {
+        try {
+          video.pause();
+          video.currentTime = 0;
+        } catch {
+          // ignore
+        }
+      }
+      setShowVideo(false);
+      setVideoOpacity(0);
+      setShowBlobBackground(true);
+      return;
+    }
+
+    setShowVideo(true);
+    setVideoOpacity(1);
+  }, [isOpeningVideoEnabled]);
 
   // v1: 두 번째 줄이 나타난 후 이동 처리
   useEffect(() => {
@@ -162,8 +204,70 @@ export default function LandingPage({ onStart, showBlob = true }: LandingPagePro
       }`}
       style={{ position: 'relative' }}
     >
+      {/* 우측 상단: opening 비디오 토글 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '14px',
+          right: '14px',
+          zIndex: 90,
+          pointerEvents: 'auto',
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={isOpeningVideoEnabled}
+          onClick={() => setIsOpeningVideoEnabled((v) => !v)}
+          className="touch-manipulation"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 10px',
+            borderRadius: '999px',
+            border: '1px solid rgba(255, 255, 255, 0.55)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.38) 45%, rgba(255, 255, 255, 0.16) 100%)',
+            boxShadow: '0 10px 22px rgba(36, 82, 94, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.88)',
+            backdropFilter: 'blur(16px) saturate(1.35)',
+            WebkitBackdropFilter: 'blur(16px) saturate(1.35)',
+            color: '#000',
+            fontFamily: 'Pretendard Variable',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '-0.24px',
+          }}
+        >
+          <span style={{ opacity: 0.8, whiteSpace: 'nowrap' }}>오프닝</span>
+          <span
+            aria-hidden="true"
+            style={{
+              width: '34px',
+              height: '18px',
+              borderRadius: '999px',
+              background: isOpeningVideoEnabled ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.25)',
+              position: 'relative',
+              transition: 'background 160ms ease',
+              flex: '0 0 auto',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: '2px',
+                left: isOpeningVideoEnabled ? '18px' : '2px',
+                width: '14px',
+                height: '14px',
+                borderRadius: '999px',
+                background: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                transition: 'left 160ms ease',
+              }}
+            />
+          </span>
+        </button>
+      </div>
       {/* 초기 비디오 재생 */}
-      {showVideo && (
+      {isOpeningVideoEnabled && showVideo && (
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"

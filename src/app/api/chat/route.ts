@@ -7,6 +7,13 @@ import { google } from 'googleapis';
 // ENV 로드
 const APP_ID = getEnv("APP_ID", "testapp");
 const TOP_K = parseInt(getEnv("TOP_K", "1"), 10); // 기본값 2 → 1로 변경 (토큰 절감 극대화)
+const MAX_CHAT_TOKENS = parseInt(getEnv("MAX_CHAT_TOKENS", "120"), 10);
+const MAX_QUESTION_CHARS = parseInt(getEnv("MAX_QUESTION_CHARS", "80"), 10);
+const MAX_HISTORY_MESSAGES = parseInt(getEnv("MAX_HISTORY_MESSAGES", "8"), 10);
+const MAX_HISTORY_USER_CHARS = parseInt(getEnv("MAX_HISTORY_USER_CHARS", "80"), 10);
+const MAX_HISTORY_ASSISTANT_CHARS = parseInt(getEnv("MAX_HISTORY_ASSISTANT_CHARS", "40"), 10);
+const MAX_ANSWER_CHARS = parseInt(getEnv("MAX_ANSWER_CHARS", "260"), 10);
+const MAX_ANSWER_SENTENCES = parseInt(getEnv("MAX_ANSWER_SENTENCES", "4"), 10);
 
 // 1) Embedding/Segmentation BASE
 let HLX_BASE = getEnv(
@@ -204,7 +211,7 @@ async function callClovaChat(messages: any[], opts: any = {}) {
     temperature: opts.temperature ?? 0.3,
     topP: opts.topP ?? 0.8,
     topK: opts.topK ?? 0,
-    maxTokens: opts.maxTokens ?? 700,
+    maxTokens: opts.maxTokens ?? MAX_CHAT_TOKENS,
     repeatPenalty: opts.repeatPenalty ?? 1.1,
     stop: [],
   };
@@ -314,6 +321,33 @@ function logTokenSummary(tag = "") {
         `TTS_REWRITE in=${TOKENS.tts_rewrite_input} out=${TOKENS.tts_rewrite_output} total=${TOKENS.tts_rewrite_total} (calls=${TOKENS.tts_rewrite_calls})`
     );
   }
+}
+
+function capAnswerLength(raw: string) {
+  const text = (raw || "").trim();
+  if (!text) return text;
+
+  // 문장 수 제한 (한국어 + 기본 종결부호 기준)
+  const sentenceRegex = /[^.!?。！？\n]+[.!?。！？]?/g;
+  const sentences = text.match(sentenceRegex) || [text];
+  const limitedBySentence = sentences
+    .slice(0, Math.max(1, MAX_ANSWER_SENTENCES))
+    .join("")
+    .trim();
+
+  // 글자수 제한
+  let capped = limitedBySentence;
+  if (capped.length > MAX_ANSWER_CHARS) {
+    capped = capped.slice(0, MAX_ANSWER_CHARS).trim();
+  }
+
+  // 마지막이 어색하면 문장부호로 마무리
+  const last = capped[capped.length - 1];
+  if (last && !['.', '!', '?', '。', '！', '？'].includes(last)) {
+    capped += '!';
+  }
+
+  return capped;
 }
 
 // Google Sheets 로그 저장 함수
@@ -1030,6 +1064,9 @@ export async function POST(request: NextRequest) {
     if (!question) return NextResponse.json({ error: "question required" }, { status: 400 });
     const feedbackPreference = body?.feedbackPreference as 'negative' | 'positive' | null | undefined;
     const history = body?.history || [];
+    const onboardingOption =
+      typeof body?.onboardingOption === 'string' ? body.onboardingOption.trim() : null;
+    const isIntro = body?.isIntro === true;
 
     // vectors.json은 정보 요구 질문일 때만 필요하므로, 나중에 필요할 때 로드
     let vectors: any[] = [];
@@ -1174,6 +1211,10 @@ export async function POST(request: NextRequest) {
     // 시스템 프롬프트의 첫 100자만 로그에 저장 (토큰 절감을 위해)
     const systemPromptForLog = activeSystemPrompt.substring(0, 100) + (activeSystemPrompt.length > 100 ? '...' : '');
     let savedRowIndex: number | null = null;
+    const questionForSheet =
+      !isIntro && messageNumber === 1 && onboardingOption
+        ? `${onboardingOption}, ${question}`
+        : question;
     
     // 디버깅: rowIndex와 messageNumber 확인
     console.log(`[Chat Log] ====== SAVING USER MESSAGE ======`);
@@ -1181,10 +1222,33 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat Log] rowIndex from body: ${rowIndex}`);
     console.log(`[Chat Log] sessionId: ${sessionId}`);
     console.log(`[Chat Log] question: ${question.substring(0, 50)}...`);
+    if (onboardingOption) {
+      console.log(`[Chat Log] onboardingOption: ${onboardingOption}`);
+    }
+    console.log(`[Chat Log] isIntro: ${isIntro}`);
     console.log(`[Chat Log] =================================`);
     
     try {
-      savedRowIndex = await saveUserMessageRealtime(sessionId, messageNumber, question, timestamp, systemPromptForLog, rowIndex);
+      if (isIntro) {
+        // intro 요청은 "첫 사용자 입력"이 아니므로 D column을 채우지 않는다.
+        // 대신 row만 미리 생성/확보하여 이후 첫 사용자 입력(messageNumber=1)을 D column에 저장할 수 있게 한다.
+        savedRowIndex = await findOrCreateSessionRow(
+          sessionId,
+          timestamp,
+          systemPromptForLog,
+          1,
+          rowIndex,
+        );
+      } else {
+        savedRowIndex = await saveUserMessageRealtime(
+          sessionId,
+          messageNumber,
+          questionForSheet,
+          timestamp,
+          systemPromptForLog,
+          rowIndex,
+        );
+      }
       if (savedRowIndex) {
         console.log(`[Chat Log] ✅ User message ${messageNumber} saved successfully at row ${savedRowIndex}`);
       } else {
@@ -1252,9 +1316,11 @@ export async function POST(request: NextRequest) {
         .join("|");
     }
 
-    // 메시지 구성 (정보 요구 질문 여부에 따라 다르게 구성) - 극대 간소화
-    // 질문 길이 제한 (30자로 제한하여 input 토큰 절감)
-    const truncatedQuestion = question.length > 30 ? question.substring(0, 30) : question;
+    // 메시지 구성 (정보 요구 질문 여부에 따라 다르게 구성)
+    // 질문 길이 제한 (기본 80자; 환경변수로 조절)
+    const truncatedQuestion = question.length > MAX_QUESTION_CHARS
+      ? question.substring(0, MAX_QUESTION_CHARS)
+      : question;
     
     // System Prompt가 없으므로 User Message에 최소한의 지시 포함
     const userMessageContent = isInfoRequest
@@ -1265,10 +1331,20 @@ export async function POST(request: NextRequest) {
 
     // History 사용: chatHistory에서 전달받은 이전 대화 (각 assistant는 키워드 2개만 포함)
     // 토큰 절감을 위해 키워드만 포함하되, 구조화된 history 형식 사용
-    const optimizedHistory = Array.isArray(history) ? history.map((msg: any) => ({
-      role: msg.role,
-      content: msg.content
-    })) : [];
+    const optimizedHistory = Array.isArray(history)
+      ? history
+          .slice(-Math.max(0, MAX_HISTORY_MESSAGES))
+          .map((msg: any) => {
+            const role = msg?.role;
+            const content = String(msg?.content ?? "");
+            const maxChars =
+              role === "user" ? MAX_HISTORY_USER_CHARS : MAX_HISTORY_ASSISTANT_CHARS;
+            return {
+              role,
+              content: content.length > maxChars ? content.substring(0, maxChars) : content,
+            };
+          })
+      : [];
 
     // System Prompt 포함: 날짜 정보와 함께 전송
     const messages = [
@@ -1292,7 +1368,7 @@ export async function POST(request: NextRequest) {
     try {
       result = await callClovaChat(messages, {
       temperature: 0.3,
-        maxTokens: 150, // 충분한 길이의 답변을 생성할 수 있도록 증가 (80→150)
+        maxTokens: MAX_CHAT_TOKENS, // 기본 120 (환경변수로 조절)
       });
       console.log("[chat] CLOVA Chat API response received");
     } catch (clovaError) {
@@ -1303,6 +1379,7 @@ export async function POST(request: NextRequest) {
     }
 
     let cleanedAnswer = removeEmojiLikeExpressions(result.content || '').trim();
+    cleanedAnswer = capAnswerLength(cleanedAnswer);
 
     // 응답이 비어있거나 너무 짧을 때 기본 메시지 제공
     if (!cleanedAnswer || cleanedAnswer.length < 5) {
@@ -1330,22 +1407,25 @@ export async function POST(request: NextRequest) {
     // (프론트엔드에서 별도 Container로 표시)
 
     // 실시간 로깅: AI 답변 수신 시 즉시 저장 (동기적으로 처리하여 row 찾기 문제 방지)
-    // savedRowIndex를 사용하여 정확한 row에 저장
-    try {
-      console.log(`[Chat Log] Attempting to save AI message ${messageNumber}...`);
-      console.log(`[Chat Log] savedRowIndex: ${savedRowIndex}`);
-      console.log(`[Chat Log] cleanedAnswer length: ${cleanedAnswer.length}`);
-      if (messageNumber === 5) {
-        console.log(`[Chat Log] ⭐ This is the 5th message - checking if question was added`);
-        console.log(`[Chat Log] cleanedAnswer preview: ${cleanedAnswer.substring(0, 200)}...`);
+    // intro 요청은 첫 user/ai pair가 아니므로 저장하지 않음
+    if (!isIntro) {
+      // savedRowIndex를 사용하여 정확한 row에 저장
+      try {
+        console.log(`[Chat Log] Attempting to save AI message ${messageNumber}...`);
+        console.log(`[Chat Log] savedRowIndex: ${savedRowIndex}`);
+        console.log(`[Chat Log] cleanedAnswer length: ${cleanedAnswer.length}`);
+        if (messageNumber === 5) {
+          console.log(`[Chat Log] ⭐ This is the 5th message - checking if question was added`);
+          console.log(`[Chat Log] cleanedAnswer preview: ${cleanedAnswer.substring(0, 200)}...`);
+        }
+        await saveAIMessageRealtime(sessionId, messageNumber, cleanedAnswer, savedRowIndex);
+        console.log(`[Chat Log] ✅ saveAIMessageRealtime completed for message ${messageNumber}`);
+      } catch (error) {
+        console.error('[Chat Log] ❌ Failed to save AI message in realtime:', error);
+        console.error('[Chat Log] Error details:', error instanceof Error ? error.stack : String(error));
+        console.error('[Chat Log] Error name:', error instanceof Error ? error.name : 'Unknown');
+        // 에러가 발생해도 메인 플로우는 계속 진행
       }
-      await saveAIMessageRealtime(sessionId, messageNumber, cleanedAnswer, savedRowIndex);
-      console.log(`[Chat Log] ✅ saveAIMessageRealtime completed for message ${messageNumber}`);
-    } catch (error) {
-      console.error('[Chat Log] ❌ Failed to save AI message in realtime:', error);
-      console.error('[Chat Log] Error details:', error instanceof Error ? error.stack : String(error));
-      console.error('[Chat Log] Error name:', error instanceof Error ? error.name : 'Unknown');
-      // 에러가 발생해도 메인 플로우는 계속 진행
     }
 
     // Token 합계 업데이트 (비동기, 에러 무시)

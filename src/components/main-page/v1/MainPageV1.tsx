@@ -88,6 +88,11 @@ interface MainPageV1Props {
 }
 
 export default function MainPageV1({ showBlob = true, selectedOnboardingOption = null }: MainPageV1Props = { showBlob: true }) {
+  // 선택 옵션은 첫 질문 로깅에 반드시 필요하므로 ref로 보관 (STT 경로 등 deps 누락/타이밍 이슈 방지)
+  const onboardingOptionRef = useRef<string | null>(selectedOnboardingOption);
+  useEffect(() => {
+    onboardingOptionRef.current = selectedOnboardingOption;
+  }, [selectedOnboardingOption]);
   const chatRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLElement | null>(null); // Test2Scene.js처럼 마지막 assistant-glass-wrapper를 추적
   const answerContainerRef = useRef<HTMLDivElement>(null); // 답변 container를 감싸는 div
@@ -214,6 +219,65 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       console.log('[MainPage] cleanup 실행됨 (timeout은 유지하여 재생 보장)');
     };
   }, [selectedOnboardingOption]);
+
+  // ending.mp3 재생을 위한 ref들
+  const endingMp3PlayedRef = useRef<boolean>(false);
+  const endingMp3TimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const endingMp3AudioRef = useRef<HTMLAudioElement | null>(null);
+  const endingMp3StartedRef = useRef<boolean>(false);
+
+  // FinalMessageScreen 표시 시 ending.mp3 재생 (0.3초 지연, 1회 재생)
+  useEffect(() => {
+    if (!showFinalMessage) {
+      return;
+    }
+
+    // 이미 재생했으면 스킵
+    if (endingMp3PlayedRef.current) {
+      console.log('[Ending] 이미 재생한 ending.mp3이어서 스킵');
+      return;
+    }
+
+    // 재생 표시를 먼저 설정하여 중복 방지
+    endingMp3PlayedRef.current = true;
+    endingMp3StartedRef.current = false;
+
+    console.log('[Ending] ending.mp3 재생 예정 (0.3초 지연)');
+
+    // 0.3초 지연 후 재생
+    endingMp3TimeoutRef.current = setTimeout(() => {
+      endingMp3StartedRef.current = true;
+      console.log('[Ending] ending.mp3 재생 시작');
+      const audio = new Audio('/pre-recordings/ending.mp3');
+      endingMp3AudioRef.current = audio;
+      audio.volume = 1.0;
+      audio.play().then(() => {
+        console.log('[Ending] ending.mp3 재생 성공');
+      }).catch((error) => {
+        console.error('[Ending] ending.mp3 재생 실패:', error);
+        // 재생 실패 시 ref 초기화하여 재시도 가능하도록
+        endingMp3PlayedRef.current = false;
+        endingMp3AudioRef.current = null;
+        endingMp3StartedRef.current = false;
+      });
+
+      // 재생 완료 후 정리
+      audio.addEventListener('ended', () => {
+        console.log('[Ending] ending.mp3 재생 완료');
+        endingMp3AudioRef.current = null;
+        endingMp3StartedRef.current = false;
+      });
+    }, 300);
+
+    return () => {
+      // cleanup: timeout이 아직 실행되지 않았으면 취소
+      if (endingMp3TimeoutRef.current && !endingMp3StartedRef.current) {
+        clearTimeout(endingMp3TimeoutRef.current);
+        endingMp3TimeoutRef.current = null;
+      }
+      // audio는 재생이 시작되면 계속되도록 정리하지 않음
+    };
+  }, [showFinalMessage]);
   
   // Circle 진자 운동 애니메이션
   useEffect(() => {
@@ -392,6 +456,13 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
   const assistantMessages = useMemo(
     () => chatState.messages.filter((message) => message.role === 'assistant'),
+    [chatState.messages]
+  );
+
+  // 대화 "턴"은 사용자 질문(user message) 기준으로 계산한다.
+  // (첫 scene에서 assistant 메시지가 2개 이상 생성되는 경우가 있어 assistantMessages.length로 세면 조기 종료될 수 있음)
+  const userTurnCount = useMemo(
+    () => chatState.messages.filter((message) => message.role === 'user').length,
     [chatState.messages]
   );
 
@@ -952,11 +1023,11 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   }, [showBlob]); // showBlob만 dependency로 사용하여 한 번만 실행
 
   useEffect(() => {
-    const assistantCount = assistantMessages.length;
+    const turnCount = userTurnCount;
 
     // 정확히 6번째 답변일 때만 ending page로 이동
     // 6번째 질문은 가능하므로, 6번째 답변이 완료된 후에만 종료 처리
-    if (assistantCount === 6 && !isConversationEnded && !chatState.isLoading) {
+    if (turnCount === 6 && !isConversationEnded && !chatState.isLoading) {
       // 6번째 답변 완료 후 8초 후 자동으로 FinalMessageScreen으로 전환
       // 이 시간 동안은 6번째 질문을 할 수 있음 (이미 완료된 상태)
       const timer = setTimeout(() => {
@@ -966,12 +1037,12 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       }, 8000);
       return () => clearTimeout(timer);
     }
-  }, [assistantMessages, isConversationEnded, chatState.isLoading]);
+  }, [userTurnCount, isConversationEnded, chatState.isLoading]);
 
   useEffect(() => {
-    const assistantCount = assistantMessages.length;
+    const turnCount = userTurnCount;
 
-    if (assistantCount === 5 && !chatState.isLoading && !isConversationEnded && assistantCount < 6) {
+    if (turnCount === 5 && !chatState.isLoading && !isConversationEnded && turnCount < 6) {
       setShowFifthAnswerWarning(true);
       // 상단 div만 표시 (alert는 표시하지 않음)
       fifthAnswerAlertShownRef.current = true;
@@ -981,10 +1052,10 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       return () => clearTimeout(timer);
     }
     
-    if (assistantCount >= 6) {
+    if (turnCount >= 6) {
       setShowFifthAnswerWarning(false);
     }
-  }, [assistantMessages, isConversationEnded, chatState.isLoading]);
+  }, [userTurnCount, isConversationEnded, chatState.isLoading]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1013,6 +1084,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       chatRef.current.scrollTop = 0;
       // overflow-y를 hidden으로 설정하여 스크롤 방지
       chatRef.current.style.overflowY = 'hidden';
+      // 상단 블러도 즉시 숨김 (iOS에서 scroll 이벤트가 안 뜨는 케이스 방지)
+      setScrollOpacity(0);
     } else if (chatRef.current) {
       // thinking 상태가 아니면 overflow-y를 auto로 복원
       chatRef.current.style.overflowY = 'auto';
@@ -1021,26 +1094,21 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
   useEffect(() => {
     const handleScroll = () => {
-      if (!chatRef.current || !answerContainerRef.current) return;
-      
-      const scrollTop = chatRef.current.scrollTop;
-      const containerRect = chatRef.current.getBoundingClientRect();
-      const answerRect = answerContainerRef.current.getBoundingClientRect();
-      
-      // answerContainerRef의 상단이 chatRef의 viewport 상단을 넘어간 정도 계산
-      const offsetTop = answerRect.top - containerRect.top;
-      
-      // 스크롤 50px 지점부터 서서히 나타나다가 150px에서 완전히 보임
-      // answerContainerRef의 상단이 chatRef viewport 상단을 넘어가기 시작할 때 블러 표시
+      if (!chatRef.current) return;
+
+      // iOS Safari에서 getBoundingClientRect 기반 계산이 흔들리는 케이스가 있어,
+      // "조금이라도 스크롤하면" 즉시 보이도록 scrollTop 기반으로 단순화.
+      const scrollTop = Math.max(chatRef.current.scrollTop, typeof window !== 'undefined' ? window.scrollY : 0);
+
       let newOpacity = 0;
-      if (offsetTop < 0) {
-        // 상단을 넘어간 정도에 따라 opacity 계산
-        const scrollAmount = Math.abs(offsetTop);
-        if (scrollAmount >= 50) {
-          // 50px ~ 150px 사이에서 0에서 1로 증가
-          newOpacity = Math.min(1, (scrollAmount - 50) / 100);
-        }
+      if (scrollTop > 0) {
+        // 아주 조금만 내려도 티가 나게: 초반에 빠르게 1로 수렴
+        const fadeDistancePx = 24;
+        const minVisibleOpacity = 0.18;
+        newOpacity = Math.min(1, scrollTop / fadeDistancePx);
+        newOpacity = Math.max(minVisibleOpacity, newOpacity);
       }
+
       setScrollOpacity(newOpacity);
     };
 
@@ -1050,10 +1118,17 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     const scrollContainer = chatRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener('scroll', throttledHandleScroll, { passive: true });
+      // iOS에서 scroll 이벤트 타이밍이 늦거나 누락되는 케이스 보강
+      scrollContainer.addEventListener('touchmove', throttledHandleScroll, { passive: true });
+      scrollContainer.addEventListener('touchend', throttledHandleScroll, { passive: true });
+      window.addEventListener('scroll', throttledHandleScroll, { passive: true });
       handleScroll(); // 초기값 설정
       
       return () => {
         scrollContainer.removeEventListener('scroll', throttledHandleScroll);
+        scrollContainer.removeEventListener('touchmove', throttledHandleScroll);
+        scrollContainer.removeEventListener('touchend', throttledHandleScroll);
+        window.removeEventListener('scroll', throttledHandleScroll);
       };
     }
   }, []);
@@ -1124,19 +1199,28 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       const historyToSend: Message[] = chatState.chatHistory;
       const nextMessageNumber = chatState.messageNumber + 1;
       
-      // 5번째 또는 6번째 질문인지 확인
-      const currentAssistantCount = assistantMessages.length;
+      // 5번째 또는 6번째 질문인지 확인 (턴 기준)
+      const nextTurnNumber = userTurnCount + 1;
       let modifiedSystemPrompt = chatState.systemPrompt;
       
-      if (currentAssistantCount === 4) {
+      if (nextTurnNumber === 5) {
         // 5번째 질문: 추가 답변 유도 말 금지
         modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 이번 답변에서는 '더 말씀해주세요', '무엇이 더 궁금하신가요?' 등 또 다른 질문을 요구하는 문장은 절대 포함되어선 안 됨. 간결하게 답변만 제공할 것.`;
-      } else if (currentAssistantCount === 5) {
+      } else if (nextTurnNumber === 6) {
         // 6번째 질문: 마무리 인삿말 포함
         modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 사용자에게 오늘 대화가 어땠는지 만족도를 묻는 것이므로, 이에 대한 답변을 생성할 것. 훈훈하고 따뜻한 끝마침 인삿말로 마무리할 것. 2-3개 문장의 간결한 문장이어야 함.`;
       }
       
-      const chatData = await apiRequests.sendChatRequest(result.text, modifiedSystemPrompt, historyToSend, chatState.rowIndex, chatState.sessionId, nextMessageNumber, feedbackPreference);
+      const chatData = await apiRequests.sendChatRequest(
+        result.text,
+        modifiedSystemPrompt,
+        historyToSend,
+        chatState.rowIndex,
+        chatState.sessionId,
+        nextMessageNumber,
+        feedbackPreference,
+        nextMessageNumber === 1 ? onboardingOptionRef.current : null,
+      );
 
           if (chatData.error) {
             chatState.addErrorMessage(chatData.error);
@@ -1198,7 +1282,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     chatState.systemPrompt,
     voiceState.setIsProcessingVoice,
     pushAssistantMessage,
-    generateThinkingText
+    generateThinkingText,
+    userTurnCount
   ]);
 
   // 음성 녹음 시작
@@ -1374,11 +1459,11 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    // 6번째 질문까지 허용: assistantMessages.length === 5일 때도 질문 가능 (6번째 질문)
+    // 6번째 질문까지 허용: userTurnCount === 5일 때도 질문 가능 (6번째 질문)
     if (!chatState.inputValue.trim() || chatState.isLoading || isConversationEnded) return;
     
-    // 6번째 질문까지 허용 확인 (assistantMessages.length가 5 이하일 때 질문 가능)
-    if (assistantMessages.length >= 6) {
+    // 6번째 질문까지 허용 확인 (userTurnCount가 5 이하일 때 질문 가능)
+    if (userTurnCount >= 6) {
       // 6번째 답변까지 완료된 경우 더 이상 질문 불가
       return;
     }
@@ -1442,19 +1527,28 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       const historyToSend: Message[] = chatState.chatHistory;
       const nextMessageNumber = chatState.messageNumber + 1;
       
-      // 5번째 또는 6번째 질문인지 확인
-      const currentAssistantCount = assistantMessages.length;
+      // 5번째 또는 6번째 질문인지 확인 (턴 기준)
+      const nextTurnNumber = userTurnCount + 1;
       let modifiedSystemPrompt = chatState.systemPrompt;
       
-      if (currentAssistantCount === 4) {
+      if (nextTurnNumber === 5) {
         // 5번째 질문: 추가 답변 유도 말 금지
         modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 이번 답변에서는 '더 말씀해주세요', '무엇이 더 궁금하신가요?' 등 또 다른 질문을 요구하는 문장은 절대 포함되어선 안 됨. 간결하게 답변만 제공할 것.`;
-      } else if (currentAssistantCount === 5) {
+      } else if (nextTurnNumber === 6) {
         // 6번째 질문: 마무리 인삿말 포함
         modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 사용자에게 오늘 대화가 어땠는지 만족도를 묻는 것이므로, 이에 대한 답변을 생성할 것. 훈훈하고 따뜻한 끝마침 인삿말로 마무리할 것. 2-3개 문장의 간결한 문장이어야 함.`;
       }
       
-      const data = await apiRequests.sendChatRequest(question, modifiedSystemPrompt, historyToSend, chatState.rowIndex, chatState.sessionId, nextMessageNumber, feedbackPreference);
+      const data = await apiRequests.sendChatRequest(
+        question,
+        modifiedSystemPrompt,
+        historyToSend,
+        chatState.rowIndex,
+        chatState.sessionId,
+        nextMessageNumber,
+        feedbackPreference,
+        nextMessageNumber === 1 ? onboardingOptionRef.current : null,
+      );
 
       if (data.error) {
         chatState.addErrorMessage(data.error);
@@ -1499,6 +1593,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     isConversationEnded,
     pushAssistantMessage,
     generateThinkingText
+    ,
+    userTurnCount
   ]);
 
   const handleGoButton = useCallback(async () => {
@@ -1513,7 +1609,10 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         [],
         chatState.rowIndex,
         chatState.sessionId,
-        nextMessageNumber
+        nextMessageNumber,
+        null,
+        onboardingOptionRef.current,
+        true
       );
 
       if (data.error) {
@@ -1526,8 +1625,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         if (data.sessionId) {
           chatState.setSessionId(data.sessionId);
         }
-        // messageNumber 업데이트
-        chatState.setMessageNumber(nextMessageNumber);
+        // intro 메시지는 "사용자 질문 턴"으로 카운트하지 않음
+        // (D열=첫 사용자 입력을 유지하기 위해 messageNumber는 0으로 유지)
         
         await pushAssistantMessage({
           answer: data.answer,
@@ -1744,7 +1843,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     if (chatState.isLoading || isConversationEnded) return;
     
     // 6번째 질문까지 허용 확인
-    if (assistantMessages.length >= 6) {
+    if (userTurnCount >= 6) {
       return;
     }
     
@@ -1930,21 +2029,30 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         const historyToSend: Message[] = chatState.chatHistory;
         const nextMessageNumber = chatState.messageNumber + 1;
         
-        // 5번째 또는 6번째 질문인지 확인
-        const currentAssistantCount = assistantMessages.length;
+        // 5번째 또는 6번째 질문인지 확인 (턴 기준)
+        const nextTurnNumber = userTurnCount + 1;
         let modifiedSystemPrompt = chatState.systemPrompt;
         
-        if (currentAssistantCount === 4) {
+        if (nextTurnNumber === 5) {
           // 5번째 질문: 추가 답변 유도 말 금지
           modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 이번 답변에서는 '더 말씀해주세요', '무엇이 더 궁금하신가요?' 등 또 다른 질문을 요구하는 문장은 절대 포함되어선 안 됨. 간결하게 답변만 제공할 것.`;
-        } else if (currentAssistantCount === 5) {
+        } else if (nextTurnNumber === 6) {
           // 6번째 질문: 마무리 인삿말 포함
           modifiedSystemPrompt = `${chatState.systemPrompt}\n\n중요: 사용자에게 오늘 대화가 어땠는지 만족도를 묻는 것이므로, 이에 대한 답변을 생성할 것. 훈훈하고 따뜻한 끝마침 인삿말로 마무리할 것. 2-3개 문장의 간결한 문장이어야 함.`;
         }
         
         // API 요청과 최소 대기 시간을 병렬로 실행
         const [data] = await Promise.all([
-          apiRequests.sendChatRequest(recommendation, modifiedSystemPrompt, historyToSend, chatState.rowIndex, chatState.sessionId, nextMessageNumber, feedbackPreference),
+          apiRequests.sendChatRequest(
+            recommendation,
+            modifiedSystemPrompt,
+            historyToSend,
+            chatState.rowIndex,
+            chatState.sessionId,
+            nextMessageNumber,
+            feedbackPreference,
+            nextMessageNumber === 1 ? onboardingOptionRef.current : null,
+          ),
           minWaitTime
         ]);
 
@@ -1982,13 +2090,13 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         setLastUserMessageText(null);
       }
     }
-  }, [chatState, isConversationEnded, pushAssistantMessage, scrollToTop, selectedOnboardingOption, generateThinkingText, assistantMessages.length, createCombinedTTSText]);
+  }, [chatState, isConversationEnded, pushAssistantMessage, scrollToTop, selectedOnboardingOption, generateThinkingText, assistantMessages.length, createCombinedTTSText, userTurnCount]);
 
   const handleContinueRecommendation = useCallback(async (sourceAssistantMessage?: Message) => {
     if (chatState.isLoading || isConversationEnded) return;
     
     // 6번째 질문까지 허용 확인
-    if (assistantMessages.length >= 6) {
+    if (userTurnCount >= 6) {
       return;
     }
     
@@ -2041,7 +2149,16 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       
       // API 요청과 최소 대기 시간을 병렬로 실행
       const [data] = await Promise.all([
-        apiRequests.sendChatRequest(secondQuestion, modifiedSystemPrompt, historyToSend, chatState.rowIndex, chatState.sessionId, nextMessageNumber, 'positive'),
+        apiRequests.sendChatRequest(
+          secondQuestion,
+          modifiedSystemPrompt,
+          historyToSend,
+          chatState.rowIndex,
+          chatState.sessionId,
+          nextMessageNumber,
+          'positive',
+          nextMessageNumber === 1 ? onboardingOptionRef.current : null,
+        ),
         minWaitTime
       ]);
 
@@ -2255,7 +2372,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   // }, [isThinking, chatState.isLoading, voiceState.isProcessingVoice, showBlob, showSummary]);
 
   return (
-    <div className={`min-h-screen flex flex-col safe-area-inset overscroll-contain relative v10-main-page ${isThinking ? 'is-thinking' : ''}`} style={{ overflowX: 'hidden', overflowY: 'auto', height: '100vh' }}>
+    <div className={`min-h-screen flex flex-col safe-area-inset overscroll-contain relative v10-main-page ${isThinking ? 'is-thinking' : ''}`} style={{ overflowX: 'hidden', overflowY: 'hidden', height: '100vh' }}>
       {/* 상시 blob - 애니메이션 트리거: 2단계 background만 표시 (위쪽 blob 숨김) */}
       {showBlob && !showSummary && !isThinking && (
         <div
@@ -2323,7 +2440,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
       <main className="relative flex-1 flex flex-col min-h-0 pt-20" style={{ background: 'transparent', paddingBottom: 0 }}>
         <div className="flex-1 overflow-hidden" style={{ position: 'relative' }}>
-          <div ref={chatRef} className="h-full overflow-y-auto overflow-x-visible px-4 pb-4 space-y-4 overscroll-contain" style={{ minHeight: '100vh', paddingBottom: 'calc(1rem + 60px)' }}>
+          <div ref={chatRef} className="h-full overflow-y-auto overflow-x-visible px-4 pb-4 space-y-4 overscroll-contain hide-scrollbar" style={{ minHeight: '100vh', paddingBottom: 'calc(1rem + 60px)' }}>
             {chatState.messages.length === 0 && !chatState.isLoading && !voiceState.isRecording && !voiceState.isProcessingVoice && (
               <div className="flex flex-col items-center justify-start min-h-full text-center" style={{ paddingTop: '80px' }}>
                 <div 
@@ -2367,7 +2484,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
                       }}
                     >
                       <div 
-                        className="absolute inset-0"
+                        className="absolute inset-0 hide-scrollbar"
                         style={{
                           paddingTop: '15vh',
                           paddingBottom: '20vh',
@@ -2457,7 +2574,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
                         />
                       </div>
                       
-                      {!selectedKeyword && !showFinalMessage && assistantMessages.length < 6 && (
+                      {!selectedKeyword && !showFinalMessage && userTurnCount < 6 && (
                         <div className="fixed bottom-0 left-0 right-0 z-20 px-6 pb-8 pt-4 bg-gradient-to-t from-white/90 to-transparent backdrop-blur-sm safe-bottom">
                           <button
                             onClick={handleEndButton}
@@ -2586,12 +2703,12 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
                             {(() => {
                               // recentAssistantMessages는 이미 useMemo로 계산됨
                               // 5번째 답변인지 확인
-                              const isFifthAnswerScene = assistantMessages.length === 5 && 
+                              const isFifthAnswerScene = userTurnCount === 5 && 
                                 recentAssistantMessages.length === 1 &&
                                 recentAssistantMessages[0] === assistantMessages[assistantMessages.length - 1];
                               
                               // 6번째 답변인지 확인
-                              const isSixthAnswerScene = assistantMessages.length === 6 && 
+                              const isSixthAnswerScene = userTurnCount === 6 && 
                                 recentAssistantMessages.length === 1 &&
                                 recentAssistantMessages[0] === assistantMessages[assistantMessages.length - 1];
                               
@@ -2993,7 +3110,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         .v10-main-page {
           background: transparent;
           overflow-x: hidden;
-          overflow-y: auto;
+          overflow-y: hidden;
           height: 100vh;
           /* v10/1: bottom tint cycle (5s per step) */
           --v10-pulse-0: #fff2fb; /* top */

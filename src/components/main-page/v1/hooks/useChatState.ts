@@ -3,6 +3,8 @@ import { Message } from '@/types';
 import { createErrorMessage } from '@/lib/messageUtils';
 import { extractKeywords } from '../utils/extractKeywords';
 
+const MAX_USER_HISTORY_CHARS = 80;
+
 export const useChatState = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
@@ -27,7 +29,13 @@ export const useChatState = () => {
         }]);
       }
     } else {
-      setChatHistory(prev => [...prev, message]);
+      const userContent = typeof message.content === 'string' ? message.content : String(message.content ?? '');
+      setChatHistory(prev => [...prev, {
+        ...message,
+        content: userContent.length > MAX_USER_HISTORY_CHARS
+          ? userContent.substring(0, MAX_USER_HISTORY_CHARS)
+          : userContent
+      }]);
     }
   }, []);
 

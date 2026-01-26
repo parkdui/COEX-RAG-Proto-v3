@@ -243,9 +243,12 @@ const KEYWORD_MATCH_REGEX = /''(.*?)''|'([^']+)'|""(.*?)""|\*\*(.*?)\*\*/;
 
 const siteLinkWrapperStyle: React.CSSProperties = {
   display: 'inline-flex',
-  padding: '8px 16px',
+  height: '28px',
+  minHeight: '28px',
+  padding: '0 10px',
   alignItems: 'center',
   gap: '6px',
+  boxSizing: 'border-box',
   borderRadius: '24px',
   background: 'linear-gradient(131deg, rgba(255, 255, 255, 0.25) 13.16%, rgba(230, 210, 255, 0.55) 50%, rgba(223, 223, 255, 0.65) 71.01%)',
   border: '1px solid #D2D2FC',
@@ -261,11 +264,12 @@ const siteLinkTextStyle: React.CSSProperties = {
   color: 'rgba(112, 60, 161, 0.70)',
   textAlign: 'center',
   fontFamily: 'Pretendard Variable',
-  fontSize: '13px',
+  fontSize: '12px',
   fontStyle: 'normal',
   fontWeight: 500,
-  lineHeight: '140%',
+  lineHeight: '12px',
   letterSpacing: '-0.6px',
+  whiteSpace: 'nowrap',
 } as const;
 
 const siteLinkIconStyle: React.CSSProperties = {
@@ -925,10 +929,11 @@ const FeedbackComponent: React.FC<{
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
+            gap: 'clamp(6px, 2.4vw, 12px)',
             opacity: selectedFeedback === null ? 1 : 0,
             transition: 'opacity 0.4s ease-in-out',
+            flexWrap: 'nowrap',
+            width: '100%',
           }}
         >
           {/* '추천이 적절했나요?' 텍스트 */}
@@ -951,37 +956,33 @@ const FeedbackComponent: React.FC<{
           <div
             style={{
               display: 'flex',
-              gap: '8px',
+              gap: 'clamp(6px, 2vw, 8px)',
               alignItems: 'center',
+              flexWrap: 'nowrap',
+              marginLeft: 'auto',
             }}
           >
             <button
               onClick={() => handleFeedbackClick('negative')}
               disabled={selectedFeedback !== null}
               style={{
-                borderRadius: '24px',
+                ...siteLinkWrapperStyle,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 border: '1px solid rgba(200, 180, 230, 0.5)',
                 background: selectedFeedback === 'negative'
                   ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(230, 210, 255, 0.7) 50%, rgba(220, 200, 250, 0.6) 100%)'
                   : 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(230, 210, 255, 0.6) 50%, rgba(220, 200, 250, 0.5) 100%)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 9.1px 0 rgba(166, 166, 166, 0.25)',
-                backdropFilter: 'blur(16px) saturate(1.4)',
-                WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-                padding: '8px 16px',
                 cursor: selectedFeedback !== null ? 'default' : 'pointer',
                 transition: 'all 0.2s ease',
+                flexShrink: 1,
+                minWidth: 0,
               }}
             >
               <span
-                style={{
-                  fontFamily: 'Pretendard Variable',
-                  fontSize: '13px',
-                  fontStyle: 'normal',
-                  fontWeight: 500,
-                  lineHeight: '140%',
-                  letterSpacing: '-0.6px',
-                  color: 'rgba(112, 60, 161, 0.70)',
-                }}
+                style={siteLinkTextStyle}
               >
                 조금 아쉬워요
               </span>
@@ -991,29 +992,23 @@ const FeedbackComponent: React.FC<{
               onClick={() => handleFeedbackClick('positive')}
               disabled={selectedFeedback !== null}
               style={{
-                borderRadius: '24px',
+                ...siteLinkWrapperStyle,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 border: '1px solid rgba(200, 180, 230, 0.5)',
                 background: selectedFeedback === 'positive'
                   ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(230, 210, 255, 0.7) 50%, rgba(220, 200, 250, 0.6) 100%)'
                   : 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(230, 210, 255, 0.6) 50%, rgba(220, 200, 250, 0.5) 100%)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 9.1px 0 rgba(166, 166, 166, 0.25)',
-                backdropFilter: 'blur(16px) saturate(1.4)',
-                WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-                padding: '8px 16px',
                 cursor: selectedFeedback !== null ? 'default' : 'pointer',
                 transition: 'all 0.2s ease',
+                flexShrink: 1,
+                minWidth: 0,
               }}
             >
               <span
-                style={{
-                  fontFamily: 'Pretendard Variable',
-                  fontSize: '13px',
-                  fontStyle: 'normal',
-                  fontWeight: 500,
-                  lineHeight: '140%',
-                  letterSpacing: '-0.6px',
-                  color: 'rgba(112, 60, 161, 0.70)',
-                }}
+                style={siteLinkTextStyle}
               >
                 잘 맞아요
               </span>
@@ -1035,6 +1030,10 @@ const FeedbackComponent: React.FC<{
               alignItems: 'center',
               gap: '12px',
               flexWrap: 'wrap',
+              // '아쉬워요' 선택 시 버튼이 없으므로 텍스트가 오른쪽으로 밀리지 않게 좌측 정렬
+              // '계속 추천' 버튼은 marginLeft: 'auto'로 우측 정렬을 유지
+              justifyContent: 'flex-start',
+              width: '100%',
             }}
           >
             <div
@@ -1048,6 +1047,9 @@ const FeedbackComponent: React.FC<{
                 letterSpacing: '-0.56px',
                 // 문자열에 포함된 '\n'이 실제 줄바꿈으로 렌더링되도록 처리
                 whiteSpace: 'pre-line',
+                // flex 컨테이너 안에서 텍스트가 자연스럽게 좌측부터 차지하도록
+                flex: '1 1 auto',
+                minWidth: 0,
               }}
             >
               {selectedFeedback && feedbackMessages[selectedFeedback]}
@@ -1058,27 +1060,22 @@ const FeedbackComponent: React.FC<{
               <button
                 onClick={handleContinueRecommendation}
                 style={{
-                  borderRadius: '24px',
+                  ...siteLinkWrapperStyle,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   border: '1px solid rgba(200, 180, 230, 0.5)',
                   background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(230, 210, 255, 0.6) 50%, rgba(220, 200, 250, 0.5) 100%)',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 9.1px 0 rgba(166, 166, 166, 0.25)',
-                  backdropFilter: 'blur(16px) saturate(1.4)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-                  padding: '8px 16px',
+                  marginLeft: 'auto',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
+                  flexShrink: 1,
+                  minWidth: 0,
                 }}
               >
                 <span
-                  style={{
-                    fontFamily: 'Pretendard Variable',
-                    fontSize: '13px',
-                    fontStyle: 'normal',
-                    fontWeight: 500,
-                    lineHeight: '140%',
-                    letterSpacing: '-0.6px',
-                    color: 'rgba(112, 60, 161, 0.70)',
-                  }}
+                  style={siteLinkTextStyle}
                 >
                   계속 추천
                 </span>

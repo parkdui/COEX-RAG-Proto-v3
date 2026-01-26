@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
+import { getEnv } from '@/lib/utils';
 
 // Siren TTS API 설정 
-const SIREN_GW_BASE_URL = 'https://public-stage-siren-gw.io.naver.com';
-const SIREN_GW_PATH = '/tts/makeTTS';
-const X_NAVER_SVCID = 'coex';
-const X_CONSUMER_ID = 'siren-gw.coex';
-const HMAC_KEY = 'OZKCBgilLC0dXQcbtXfWdQnEvkh3BrgUO2pEMq2sBCQrePSQWRE3AhbgrldHBdbl';
-const DEFAULT_SPEAKER = 'xsori';
+// NOTE:
+// - 현재 기본값은 stage 엔드포인트(public-stage-siren-gw)로 유지하되,
+//   운영/스테이징 전환이 가능하도록 env로 오버라이드할 수 있게 함.
+const SIREN_GW_BASE_URL = getEnv('SIREN_GW_BASE_URL', 'https://public-stage-siren-gw.io.naver.com');
+const SIREN_GW_PATH = getEnv('SIREN_GW_PATH', '/tts/makeTTS');
+const X_NAVER_SVCID = getEnv('SIREN_X_NAVER_SVCID', 'coex');
+const X_CONSUMER_ID = getEnv('SIREN_X_CONSUMER_ID', 'siren-gw.coex');
+// TODO(security): 가능하면 하드코딩 값을 제거하고 배포 환경변수로만 주입하세요.
+const HMAC_KEY = getEnv('SIREN_HMAC_KEY', 'OZKCBgilLC0dXQcbtXfWdQnEvkh3BrgUO2pEMq2sBCQrePSQWRE3AhbgrldHBdbl');
+const DEFAULT_SPEAKER = getEnv('SIREN_DEFAULT_SPEAKER', 'xsori');
 
 /**
  * HMAC SHA1 생성 함수
@@ -33,15 +38,16 @@ function generateAuthHeaders(): Record<string, string> {
   const dataToSign = hmacUrlLimited + msgpad;
   const md = generateHmac(HMAC_KEY, dataToSign);
 
-  // 디버깅을 위한 로그
-  console.log('HMAC Debug:', {
-    hmacUrl,
-    hmacUrlLimited,
-    msgpad,
-    dataToSign,
-    md,
-    hmacKeyLength: HMAC_KEY.length,
-  });
+  // 디버깅 로그 (민감정보 노출 방지: HMAC/서명 값은 출력하지 않음)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Siren TTS] Auth Debug:', {
+      hmacUrl,
+      hmacUrlLimited,
+      msgpad,
+      dataToSignLength: dataToSign.length,
+      hmacKeyLength: HMAC_KEY.length,
+    });
+  }
 
   // PDF의 curl 예제를 보면 x-naver-svcid를 사용하지만, 표에서는 x-naversvcid로 되어 있음
   // curl 예제를 따라 x-naver-svcid 사용
@@ -107,7 +113,9 @@ export async function POST(request: NextRequest) {
       speed,
       volume,
       alpha,
-      format 
+      format,
+      baseUrl: SIREN_GW_BASE_URL,
+      path: SIREN_GW_PATH,
     });
 
     const response = await fetch(apiUrl, {
@@ -166,7 +174,8 @@ export async function POST(request: NextRequest) {
 
     // 응답 헤더 설정
     const headers = new Headers();
-    headers.set('Content-Type', contentType);
+    const upstreamContentType = response.headers.get('content-type');
+    headers.set('Content-Type', upstreamContentType || contentType);
     headers.set('Content-Length', audioBuffer.byteLength.toString());
     headers.set('Cache-Control', 'no-cache');
 

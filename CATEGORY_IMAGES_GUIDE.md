@@ -9,53 +9,48 @@
 카테고리별 이미지 파일을 준비하세요. 권장 형식:
 - **파일 형식**: PNG 또는 JPG
 - **이미지 크기**: 최소 800x600px 이상 (비율은 자유)
-- **파일명**: 카테고리 이름과 동일하게 (예: `음식점.png`, `카페.jpg`)
+- **파일명**: 숫자 파일명 규칙 사용 (예: `01.png`, `02.png` ...)
 
 ### 2. 이미지 파일 저장 위치
-`public/category-images/` 폴더를 생성하고 이미지 파일을 저장하세요:
+`public/category_images/` 폴더에 이미지 파일을 저장하세요:
 
 ```
 public/
-  └── category-images/
-      ├── 음식점.png
-      ├── 카페.png
-      ├── 옷가게.png
-      ├── 엑티비티.png
-      ├── 휴식.png
-      ├── 관람.png
-      ├── 컨퍼런스.png
-      ├── 행사-이벤트.png  (주의: '행사/이벤트'는 파일명에 '/' 사용 불가)
-      ├── 전시.png
-      └── 편의시설.png     (주의: '편의 시설'은 공백 제거)
+  └── category_images/
+      ├── 01.png  (음식점)
+      ├── 02.png  (카페)
+      ├── 03.png  (옷가게)
+      ├── 05.png  (휴식)
+      ├── 06.png  (관람)
+      ├── 09.png  (전시)
+      └── 10.png  (편의 시설)
 ```
 
 **주의사항:**
-- 파일명에 특수문자(`/`, 공백 등)는 사용할 수 없습니다
-- `행사/이벤트` → `행사-이벤트.png` 또는 `행사이벤트.png`
-- `편의 시설` → `편의시설.png` 또는 `편의-시설.png`
+- `엑티비티(04)`, `컨퍼런스(07)`, `행사/이벤트(08)`는 **현재 이미지 파일이 없으므로 더미 div가 표시**됩니다.
 
 ### 3. 이미지 경로 매핑 수정
 `src/lib/categoryImages.ts` 파일에서 카테고리와 이미지 경로를 매핑하세요:
 
 ```typescript
-export const CATEGORY_IMAGE_MAP: Record<NonNullable<QuestionCategory>, string> = {
-  '음식점': '/category-images/음식점.png',
-  '카페': '/category-images/카페.png',
-  '옷가게': '/category-images/옷가게.png',
-  '엑티비티': '/category-images/엑티비티.png',
-  '휴식': '/category-images/휴식.png',
-  '관람': '/category-images/관람.png',
-  '컨퍼런스': '/category-images/컨퍼런스.png',
-  '행사/이벤트': '/category-images/행사-이벤트.png',  // 파일명에 맞게 수정
-  '전시': '/category-images/전시.png',
-  '편의 시설': '/category-images/편의시설.png',        // 파일명에 맞게 수정
+export const CATEGORY_IMAGE_MAP: Record<NonNullable<QuestionCategory>, string | null> = {
+  '음식점': '/category_images/01.png',
+  '카페': '/category_images/02.png',
+  '옷가게': '/category_images/03.png',
+  '엑티비티': null,
+  '휴식': '/category_images/05.png',
+  '관람': '/category_images/06.png',
+  '컨퍼런스': null,
+  '행사/이벤트': null,
+  '전시': '/category_images/09.png',
+  '편의 시설': '/category_images/10.png',
 };
 ```
 
 ### 4. 동작 방식
 1. 사용자가 정보 요구 질문을 입력하면 카테고리 분류 API가 호출됩니다
 2. 분류된 카테고리에 해당하는 이미지가 있으면 자동으로 표시됩니다
-3. `thumbnailUrl`이 있으면 우선 사용되고, 없으면 카테고리 이미지를 사용합니다
+3. **카테고리 이미지가 있으면 우선 사용**되고, 없으면 `thumbnailUrl`을 사용합니다
 4. 카테고리 이미지도 없으면 더미 이미지가 표시됩니다
 
 ## 카테고리 목록
@@ -83,9 +78,9 @@ export const CATEGORY_IMAGE_MAP: Record<NonNullable<QuestionCategory>, string> =
 ```
 질문: "맛있는 식당 추천해줘"
 → 카테고리: "음식점"
-→ 이미지: /category-images/음식점.png 표시
+→ 이미지: /category_images/01.png 표시
 
 질문: "조용한 카페 찾고 있어"
 → 카테고리: "카페"
-→ 이미지: /category-images/카페.png 표시
+→ 이미지: /category_images/02.png 표시
 ```

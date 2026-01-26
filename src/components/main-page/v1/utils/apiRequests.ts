@@ -1,7 +1,17 @@
 import { Message } from '@/types';
 
 export const apiRequests = {
-  async sendChatRequest(question: string, systemPrompt: string, history: Message[], rowIndex?: number | null, sessionId?: string | null, messageNumber?: number, feedbackPreference?: 'negative' | 'positive' | null) {
+  async sendChatRequest(
+    question: string,
+    systemPrompt: string,
+    history: Message[],
+    rowIndex?: number | null,
+    sessionId?: string | null,
+    messageNumber?: number,
+    feedbackPreference?: 'negative' | 'positive' | null,
+    onboardingOption?: string | null,
+    isIntro?: boolean,
+  ) {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -12,7 +22,9 @@ export const apiRequests = {
         rowIndex: rowIndex || undefined,
         sessionId: sessionId || undefined,
         messageNumber: messageNumber || undefined,
-        feedbackPreference: feedbackPreference || undefined
+        feedbackPreference: feedbackPreference || undefined,
+        onboardingOption: onboardingOption || undefined,
+        isIntro: isIntro || undefined,
       }),
     });
     return response.json();
