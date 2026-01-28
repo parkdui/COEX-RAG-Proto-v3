@@ -111,7 +111,7 @@ function determineSegmentType(segment: string, index: number, totalSegments: num
   // 이벤트 정보 패턴
   const eventInfoPatterns = [
     '이벤트', '전시', '박람회', '축제', '공연', '쇼', '컨퍼런스', '세미나',
-    '월', '일', '년', '시간', '장소', '위치', '코엑스', 'coex',
+    '월', '일', '년', '시간', '장소', '위치', '코엑스', 'coex', '강남아이즈',
     '부터', '까지', '기간', '예정', '진행', '개최'
   ];
   

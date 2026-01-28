@@ -258,7 +258,7 @@ async function callClovaChat(messages: any[], opts: any = {}) {
   
   // 응답이 비어있거나 너무 짧을 때 기본 메시지 제공
   if (!responseContent || responseContent.trim().length < 5) {
-    responseContent = '안녕하세요! 코엑스에서 무엇을 도와드릴까요?';
+    responseContent = '안녕하세요! 강남아이즈에서 무엇을 도와드릴까요?';
     console.warn(`[WARNING] CLOVA API 응답이 비어있거나 너무 짧습니다. 기본 메시지 사용: "${responseContent}"`);
   }
 
@@ -1188,7 +1188,7 @@ export async function POST(request: NextRequest) {
     // System Prompt에 날짜 정보 추가
     let activeSystemPrompt = defaultSystemPrompt 
       ? `${defaultSystemPrompt}\n\n[현재 날짜]\n오늘은 ${dateString}입니다. 모든 이벤트, 행사, 전시 등의 일정은 이 날짜를 기준으로 판단하세요.`
-      : `너는 '이솔(SORI)'이라는 이름의 젊은 여성 AI 마스코트입니다. 코엑스를 방문한 사람과 자연스럽게 대화하며 즐거움, 영감, 새로운 시선을 선사하는 동행자입니다.\n\n[현재 날짜]\n오늘은 ${dateString}입니다. 모든 이벤트, 행사, 전시 등의 일정은 이 날짜를 기준으로 판단하세요.`;
+      : `너는 '이솔(SORI)'이라는 이름의 젊은 여성 AI 마스코트입니다. 강남아이즈 또는 코엑스를 방문한 사람과 자연스럽게 대화하며 즐거움, 영감, 새로운 시선을 선사하는 동행자입니다.\n\n[현재 날짜]\n오늘은 ${dateString}입니다. 모든 이벤트, 행사, 전시 등의 일정은 이 날짜를 기준으로 판단하세요.`;
     
     // 피드백 정보를 시스템 프롬프트에 반영
     if (feedbackPreference === 'negative') {
@@ -1204,7 +1204,7 @@ export async function POST(request: NextRequest) {
     
     // 6번째 API call일 때: 대화 마무리 인삿말
     if (messageNumber === 6) {
-      activeSystemPrompt += `\n\n[중요] 이번 요청은 사용자가 '오늘 이솔과의 대화는 어땠나요?' 또는 '오늘 코엑스에서 기억에 남는 점이 있는지 궁금해요.' 라는 질문에 대한 대답입니다. 대화를 즐겁게 마무리하고, 사용자에게 따뜻한 인삿말과 함께 답변을 생성하세요. 예를 들어 'COEX에서 즐거운 시간 보내고 또 만나요~!' 같은 마무리 인삿말을 포함하여 답변을 마무리하세요.`;
+      activeSystemPrompt += `\n\n[중요] 이번 요청은 사용자가 '오늘 이솔과의 대화는 어땠나요?' 또는 '오늘 강남아이즈에서 기억에 남는 점이 있는지 궁금해요.' 라는 질문에 대한 대답입니다. 대화를 즐겁게 마무리하고, 사용자에게 따뜻한 인삿말과 함께 답변을 생성하세요. 예를 들어 'COEX에서 즐거운 시간 보내고 또 만나요~!' 같은 마무리 인삿말을 포함하여 답변을 마무리하세요.`;
     }
     
     // 실시간 로깅: 질문 입력 시 즉시 저장 (동기적으로 처리하여 row 찾기 문제 방지)
@@ -1383,7 +1383,7 @@ export async function POST(request: NextRequest) {
 
     // 응답이 비어있거나 너무 짧을 때 기본 메시지 제공
     if (!cleanedAnswer || cleanedAnswer.length < 5) {
-      cleanedAnswer = '안녕하세요! 코엑스에서 무엇을 도와드릴까요?';
+      cleanedAnswer = '안녕하세요! 강남아이즈에서 무엇을 도와드릴까요?';
       console.warn(`[WARNING] AI 응답이 비어있거나 너무 짧습니다. 기본 메시지 사용: "${cleanedAnswer}"`);
     }
 

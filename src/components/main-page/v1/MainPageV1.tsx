@@ -1604,7 +1604,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     try {
       const nextMessageNumber = 1; // 첫 번째 메시지
       const data = await apiRequests.sendChatRequest(
-        "안녕하세요! 이솔이에요. 오늘 어떤 무드로 코엑스를 즐기고 싶으신가요?",
+        "안녕하세요! 이솔이에요. 오늘 어떤 무드로 강남아이즈를 즐기고 싶으신가요?",
         chatState.systemPrompt,
         [],
         chatState.rowIndex,
@@ -2459,8 +2459,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
                   <div className="flex justify-center">
                     <SplitText 
                       text={selectedOnboardingOption 
-                        ? `이솔이 ${selectedOnboardingOption} 코엑스에서 즐기기 좋은 곳들을 추천해드릴게요.`
-                        : '이솔이 코엑스 안내를 도와드릴게요.'} 
+                        ? `이솔이 ${selectedOnboardingOption} 강남아이즈에서 즐기기 좋은 곳들을 추천해드릴게요.`
+                        : '이솔이 강남아이즈 안내를 도와드릴게요.'} 
                       delay={0} 
                       duration={1.2} 
                       stagger={0.05} 

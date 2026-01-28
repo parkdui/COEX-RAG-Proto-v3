@@ -229,7 +229,7 @@ export const FinalMessageScreen: React.FC = () => {
       <BlobBackgroundV2 />
       <div className="text-left" style={{ position: 'relative', zIndex: 20 }}>
         <TextPressure
-          text="COEX에서"
+          text="강남아이즈에서"
           trigger="auto"
           duration={1.2}
           style={{

@@ -115,7 +115,7 @@ export default function OnboardingPageV2({ onComplete }: OnboardingPageV2Props) 
               }}
             >
               <div style={{ marginBottom: '4px' }}>
-                안녕하세요, 이솔입니다.<br />오늘 누구와 코엑스에 방문하셨나요?
+                안녕하세요, 이솔입니다.<br />오늘 누구와 강남아이즈에 방문하셨나요?
               </div>
             </div>
           ) : (

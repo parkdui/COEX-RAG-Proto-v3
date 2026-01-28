@@ -545,7 +545,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                     }}
                   />
                   <VerticalCarouselText
-                    text="COEX"
+                    text="GangnamEyes"
                     duration={4500}
                     stagger={180}
                     enableColorAnimation={false}
@@ -587,7 +587,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
               }}
             >
               <div style={{ marginBottom: '4px' }}>
-                안녕하세요, 이솔입니다.<br />오늘 누구와 코엑스에 방문하셨나요?
+                안녕하세요, 이솔입니다.<br />오늘 누구와 강남아이즈에 방문하셨나요?
               </div>
             </div>
           )}

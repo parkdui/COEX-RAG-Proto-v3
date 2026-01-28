@@ -183,7 +183,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               }}
             >
               <SplitText 
-                text="오늘 누구와 코엑스를 방문하셨나요?" 
+                text="오늘 누구와 강남아이즈를 방문하셨나요?" 
                 delay={0} 
                 duration={0.8} 
                 stagger={0.05} 

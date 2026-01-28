@@ -425,7 +425,7 @@ export default function LandingPage({ onStart, showBlob = true }: LandingPagePro
                         }}
                       />
                       <VerticalCarouselText
-                        text="COEX"
+                        text="GangnamEyes"
                         duration={4500}
                         stagger={180}
                         enableColorAnimation={false}
