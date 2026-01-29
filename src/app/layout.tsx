@@ -13,12 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "COEX 이벤트 안내 AI",
-  description: "COEX 이벤트 정보를 제공하는 RAG 시스템",
+  title: "강남아이즈 이벤트 안내 Sori",
+  description: "강남아이즈 이벤트 정보를 제공하는 RAG 시스템",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "COEX 이벤트 안내 AI",
+    title: "강남아이즈 이벤트 안내 AI",
   },
 };
 
