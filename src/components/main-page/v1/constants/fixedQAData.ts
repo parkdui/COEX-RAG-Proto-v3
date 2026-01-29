@@ -257,8 +257,8 @@ export const fixedQAData: FixedQA[] = [
   // 8. 유명 스팟
   {
     topicId: "famous",
-    questionTemplate: "{chip} 코엑스에서 가장 유명한 곳에 가고 싶어",
-    thinkingText: "{chip} 코엑스에서 가장 유명한 곳을 찾고 있어요",
+    questionTemplate: "{chip} 강남아이즈에서 가장 유명한 곳에 가고 싶어",
+    thinkingText: "{chip} 강남아이즈에서 가장 유명한 곳을 찾고 있어요",
     answers: [
       {
         textTemplate:
@@ -315,8 +315,8 @@ export const fixedQAData: FixedQA[] = [
   // 10. 코엑스 주변 구경
   {
     topicId: "around_coex",
-    questionTemplate: "{chip} 코엑스 주변 구경거리를 추천해줘",
-    thinkingText: "{chip} 코엑스 주변 구경거리를 찾고 있어요",
+    questionTemplate: "{chip} 강남아이즈 주변 구경거리를 추천해줘",
+    thinkingText: "{chip} 강남아이즈 주변 구경거리를 찾고 있어요",
     answers: [
       {
         textTemplate:

@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
     
     // 응답 헤더 설정
     const headers = new Headers();
-    headers.set('Content-Type', 'audio/mpeg');
+    const upstreamContentType = response.headers.get('content-type');
+    const fallbackContentType = format === 'wav' ? 'audio/wav' : 'audio/mpeg';
+    headers.set('Content-Type', upstreamContentType || fallbackContentType);
     headers.set('Content-Length', audioBuffer.byteLength.toString());
     headers.set('Cache-Control', 'no-cache');
 

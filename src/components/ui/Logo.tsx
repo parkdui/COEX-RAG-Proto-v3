@@ -28,8 +28,8 @@ export default function Logo({ className = '' }: LogoProps) {
       }}
     >
       <img 
-        src="/Coex CI_White 2.svg" 
-        alt="COEX Logo"
+        src="/GangnamEyes_BI_S.svg" 
+        alt="GangnamEyes Logo"
         style={{
           width: '100%',
           height: '100%',

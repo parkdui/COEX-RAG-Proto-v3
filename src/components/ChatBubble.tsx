@@ -1780,7 +1780,7 @@ const SingleMessageComponent: React.FC<{
 
     // 응답이 비어있거나 너무 짧을 때 기본 메시지 제공
     const finalText = !displayText || displayText.length < 5
-      ? '안녕하세요! 코엑스에서 무엇을 도와드릴까요?'
+      ? '안녕하세요! 강남아이즈에서 무엇을 도와드릴까요?'
       : displayText;
 
     const highlight = getHighlightedTextParts(finalText).highlightedText;

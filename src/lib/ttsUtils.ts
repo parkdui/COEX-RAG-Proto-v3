@@ -2,14 +2,19 @@
  * TTS 관련 유틸리티 함수들
  */
 
-import { TTSRequest } from '@/types';
-
 /**
  * TTS API 요청을 보내는 함수
  */
 interface RequestTTSOptions {
   signal?: AbortSignal;
 }
+
+type TTSOutputFormat = 'mp3' | 'wav';
+
+// 기본값을 wav로 두어(무압축) 고역 손실을 방지합니다.
+// 필요 시 NEXT_PUBLIC_TTS_AUDIO_FORMAT=mp3 로 손쉽게 되돌릴 수 있습니다.
+const DEFAULT_TTS_OUTPUT_FORMAT: TTSOutputFormat =
+  process.env.NEXT_PUBLIC_TTS_AUDIO_FORMAT === 'mp3' ? 'mp3' : 'wav';
 
 export async function requestTTS(text: string, options: RequestTTSOptions = {}): Promise<Blob> {
   // Siren TTS API 사용 (기존 CLOVA Voice 대체)
@@ -19,7 +24,7 @@ export async function requestTTS(text: string, options: RequestTTSOptions = {}):
     speed: -1,        // 1.11배 빠르게 (기존 CLOVA의 '-1'과 유사한 효과)
     volume: 0,        // 보통 크기
     alpha: 0,         // 기본 음색
-    format: 'mp3'     // 오디오 포맷
+    format: DEFAULT_TTS_OUTPUT_FORMAT, // 오디오 포맷 (기본: wav)
   };
 
   const startTime = Date.now();

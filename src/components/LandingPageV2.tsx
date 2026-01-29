@@ -43,6 +43,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
   const [showSelectedMessage, setShowSelectedMessage] = useState(false);
   const [blobAnimating, setBlobAnimating] = useState(false);
   const [questionTextOpacity, setQuestionTextOpacity] = useState(1);
+  const [isUnder375, setIsUnder375] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const optionAudioRef = useRef<HTMLAudioElement | null>(null);
   const arriveTimerRef = useRef<number | null>(null);
@@ -67,6 +68,18 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
       window.clearTimeout(moveTimer);
     };
   }, [showSori]);
+
+  // breakpoint: 375px 미만이면 타이틀을 3줄로 분리 (Sori at / Gangnam / Eyes)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 374px)');
+    const update = () => setIsUnder375(mq.matches);
+    update();
+
+    // 최신 브라우저: MediaQueryListEvent 기반 change 이벤트
+    // (구형 addListener/removeListener는 TS lib에서 제거되어 빌드 에러가 날 수 있어 사용하지 않음)
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   // opening 비디오 토글 상태 로드/저장 (새로고침 유지)
   useEffect(() => {
@@ -512,54 +525,108 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
             
             {showSori && (
               <div className="landing-title-v2" style={{ fontFamily: 'Pretendard Variable', fontWeight: 400, lineHeight: '90%', letterSpacing: '-1.8px', fontSize: '40.5pt', marginBottom: '16px' }}>
-                <div className="v2-title-container" style={{ height: '0.9em', overflow: 'visible', lineHeight: '0.9em', display: 'inline-flex', alignItems: 'flex-end' }}>
-                  <VerticalCarouselText
-                    text="Sori"
-                    duration={4500}
-                    stagger={180}
-                    enableColorAnimation={true}
-                    characterClassName="vertical-carousel-v2-char"
-                    className="vertical-carousel-v2"
-                    style={{ 
-                      fontFamily: 'Pretendard Variable', 
-                      fontWeight: 400, 
-                      lineHeight: '90%', 
-                      letterSpacing: '-1.8px', 
-                      fontSize: '40.5pt'
-                    }}
-                  />
-                  <VerticalCarouselText
-                    text="at"
-                    duration={4500}
-                    stagger={180}
-                    enableColorAnimation={false}
-                    characterClassName="vertical-carousel-v2-char"
-                    className="vertical-carousel-v2"
-                    style={{ 
-                      fontFamily: 'Pretendard Variable', 
-                      fontWeight: 400, 
-                      lineHeight: '90%', 
-                      letterSpacing: '-1.8px', 
-                      fontSize: '40.5pt',
-                      color: '#000000'
-                    }}
-                  />
-                  <VerticalCarouselText
-                    text="GangnamEyes"
-                    duration={4500}
-                    stagger={180}
-                    enableColorAnimation={false}
-                    characterClassName="vertical-carousel-v2-char"
-                    className="vertical-carousel-v2"
-                    style={{ 
-                      fontFamily: 'Pretendard Variable', 
-                      fontWeight: 400, 
-                      lineHeight: '90%', 
-                      letterSpacing: '-1.8px', 
-                      fontSize: '40.5pt',
-                      color: '#000000'
-                    }}
-                  />
+                <div
+                  className="v2-title-container"
+                  style={{
+                    display: 'inline-flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    // 너무 타이트하면 글자 하단이 잘릴 수 있어 여유를 둠
+                    lineHeight: '1.05em',
+                  }}
+                >
+                  <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                    <VerticalCarouselText
+                      text="Sori"
+                      duration={4500}
+                      stagger={180}
+                      enableColorAnimation={true}
+                      characterClassName="vertical-carousel-v2-char"
+                      className="vertical-carousel-v2"
+                      style={{ 
+                        fontFamily: 'Pretendard Variable', 
+                        fontWeight: 400, 
+                        lineHeight: '90%', 
+                        letterSpacing: '-1.8px', 
+                        fontSize: '40.5pt'
+                      }}
+                    />
+                    <VerticalCarouselText
+                      text="at"
+                      duration={4500}
+                      stagger={180}
+                      enableColorAnimation={false}
+                      characterClassName="vertical-carousel-v2-char"
+                      className="vertical-carousel-v2"
+                      style={{ 
+                        fontFamily: 'Pretendard Variable', 
+                        fontWeight: 400, 
+                        lineHeight: '90%', 
+                        letterSpacing: '-1.8px', 
+                        fontSize: '40.5pt',
+                        color: '#000000'
+                      }}
+                    />
+                  </div>
+                  {isUnder375 ? (
+                    <>
+                      <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                        <VerticalCarouselText
+                          text="Gangnam"
+                          duration={4500}
+                          stagger={180}
+                          enableColorAnimation={false}
+                          characterClassName="vertical-carousel-v2-char"
+                          className="vertical-carousel-v2"
+                          style={{ 
+                            fontFamily: 'Pretendard Variable', 
+                            fontWeight: 400, 
+                            lineHeight: '90%', 
+                            letterSpacing: '-1.8px', 
+                            fontSize: '40.5pt',
+                            color: '#000000'
+                          }}
+                        />
+                      </div>
+                      <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                        <VerticalCarouselText
+                          text="Eyes"
+                          duration={4500}
+                          stagger={180}
+                          enableColorAnimation={false}
+                          characterClassName="vertical-carousel-v2-char"
+                          className="vertical-carousel-v2"
+                          style={{ 
+                            fontFamily: 'Pretendard Variable', 
+                            fontWeight: 400, 
+                            lineHeight: '90%', 
+                            letterSpacing: '-1.8px', 
+                            fontSize: '40.5pt',
+                            color: '#000000'
+                          }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                      <VerticalCarouselText
+                        text="Gangnam Eyes"
+                        duration={4500}
+                        stagger={180}
+                        enableColorAnimation={false}
+                        characterClassName="vertical-carousel-v2-char"
+                        className="vertical-carousel-v2"
+                        style={{ 
+                          fontFamily: 'Pretendard Variable', 
+                          fontWeight: 400, 
+                          lineHeight: '90%', 
+                          letterSpacing: '-1.8px', 
+                          fontSize: '40.5pt',
+                          color: '#000000'
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -587,7 +654,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
               }}
             >
               <div style={{ marginBottom: '4px' }}>
-                안녕하세요, 이솔입니다.<br />오늘 누구와 강남아이즈에 방문하셨나요?
+                안녕하세요, 이솔입니다.<br />누구와 강남아이즈에<br />방문하셨나요?
               </div>
             </div>
           )}
@@ -628,7 +695,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
             <div
               style={{
                 position: 'absolute',
-                top: '-240%', // 텍스트보다 위에 배치
+                top: '-150%', // 버튼들이 너무 위로 올라가서 아래로 내림
                 left: 0,
                 right: 0,
                 display: 'flex',
@@ -671,6 +738,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                   textAlign: 'center',
                   width: 'calc((100% - 12px) / 2)', // '친구랑 같이' 버튼과 동일한 너비
                   minWidth: 0,
+                  whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
@@ -764,8 +832,10 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                   cursor: 'pointer',
                   transition: 'transform 160ms ease, box-shadow 160ms ease, background 160ms ease',
                   textAlign: 'center',
-                  width: 'calc((100% - 12px) / 2)', // '친구랑 같이' 버튼과 동일한 너비
+                  width: 'auto', // 작은 화면에서도 줄바꿈 없이 내용 너비만큼
                   minWidth: 0,
+                  maxWidth: '100%',
+                  whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';

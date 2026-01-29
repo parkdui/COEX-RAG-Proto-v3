@@ -13,6 +13,7 @@ export default function TTSDownloadPage() {
   const [speaker, setSpeaker] = useState('xsori');
   const [speed, setSpeed] = useState('0');
   const [volume, setVolume] = useState('0');
+  const [format, setFormat] = useState<'wav' | 'mp3'>('wav');
 
   const handleGenerate = async () => {
     if (!text.trim()) {
@@ -29,7 +30,7 @@ export default function TTSDownloadPage() {
       
       const requestBody: any = {
         text: text.trim(),
-        format: 'mp3',
+        format,
       };
 
       if (ttsType === 'siren') {
@@ -70,7 +71,7 @@ export default function TTSDownloadPage() {
 
     const a = document.createElement('a');
     a.href = audioUrl;
-    a.download = `tts_${Date.now()}.mp3`;
+    a.download = `tts_${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -123,7 +124,7 @@ export default function TTSDownloadPage() {
           </div>
 
           {/* 설정 옵션 */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             <div>
               <label className="block text-white mb-2 text-sm">화자</label>
               <select
@@ -143,6 +144,17 @@ export default function TTSDownloadPage() {
                     <option value="ndain">ndain</option>
                   </>
                 )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-white mb-2 text-sm">포맷</label>
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as 'wav' | 'mp3')}
+                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+              >
+                <option value="wav">wav (고음질)</option>
+                <option value="mp3">mp3 (용량 작음)</option>
               </select>
             </div>
             <div>
@@ -212,7 +224,7 @@ export default function TTSDownloadPage() {
             <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
               <li>텍스트를 입력하고 &quot;음성 생성&quot; 버튼을 클릭하세요.</li>
               <li>생성된 음성을 미리 들어볼 수 있습니다.</li>
-              <li>&quot;다운로드&quot; 버튼을 클릭하여 MP3 파일로 저장하세요.</li>
+              <li>&quot;다운로드&quot; 버튼을 클릭하여 파일로 저장하세요.</li>
               <li>API 직접 호출: <code className="bg-white/10 px-2 py-1 rounded">GET /api/tts-siren?text=안녕하세요</code></li>
             </ul>
           </div>
