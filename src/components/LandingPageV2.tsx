@@ -51,7 +51,6 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
   const [showSelectedMessage, setShowSelectedMessage] = useState(false);
   const [blobAnimating, setBlobAnimating] = useState(false);
   const [questionTextOpacity, setQuestionTextOpacity] = useState(1);
-  const [isUnder375, setIsUnder375] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const optionAudioRef = useRef<HTMLAudioElement | null>(null);
   const arriveTimerRef = useRef<number | null>(null);
@@ -76,18 +75,6 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
       window.clearTimeout(moveTimer);
     };
   }, [showSori]);
-
-  // breakpoint: 375px 미만이면 타이틀을 3줄로 분리 (Sori at / Gangnam / Eyes)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 374px)');
-    const update = () => setIsUnder375(mq.matches);
-    update();
-
-    // 최신 브라우저: MediaQueryListEvent 기반 change 이벤트
-    // (구형 addListener/removeListener는 TS lib에서 제거되어 빌드 에러가 날 수 있어 사용하지 않음)
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
 
   // opening 비디오 토글 상태 로드/저장 (새로고침 유지)
   useEffect(() => {
@@ -576,65 +563,42 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                       }}
                     />
                   </div>
-                  {isUnder375 ? (
-                    <>
-                      <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
-                        <VerticalCarouselText
-                          text="Gangnam"
-                          duration={4500}
-                          stagger={180}
-                          enableColorAnimation={false}
-                          characterClassName="vertical-carousel-v2-char"
-                          className="vertical-carousel-v2"
-                          style={{ 
-                            fontFamily: 'Pretendard Variable', 
-                            fontWeight: 400, 
-                            lineHeight: '90%', 
-                            letterSpacing: '-1.8px', 
-                            fontSize: '40.5pt',
-                            color: '#000000'
-                          }}
-                        />
-                      </div>
-                      <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
-                        <VerticalCarouselText
-                          text="Eyes"
-                          duration={4500}
-                          stagger={180}
-                          enableColorAnimation={false}
-                          characterClassName="vertical-carousel-v2-char"
-                          className="vertical-carousel-v2"
-                          style={{ 
-                            fontFamily: 'Pretendard Variable', 
-                            fontWeight: 400, 
-                            lineHeight: '90%', 
-                            letterSpacing: '-1.8px', 
-                            fontSize: '40.5pt',
-                            color: '#000000'
-                          }}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
-                      <VerticalCarouselText
-                        text="Gangnam Eyes"
-                        duration={4500}
-                        stagger={180}
-                        enableColorAnimation={false}
-                        characterClassName="vertical-carousel-v2-char"
-                        className="vertical-carousel-v2"
-                        style={{ 
-                          fontFamily: 'Pretendard Variable', 
-                          fontWeight: 400, 
-                          lineHeight: '90%', 
-                          letterSpacing: '-1.8px', 
-                          fontSize: '40.5pt',
-                          color: '#000000'
-                        }}
-                      />
-                    </div>
-                  )}
+                  <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                    <VerticalCarouselText
+                      text="Gangnam"
+                      duration={4500}
+                      stagger={180}
+                      enableColorAnimation={false}
+                      characterClassName="vertical-carousel-v2-char"
+                      className="vertical-carousel-v2"
+                      style={{ 
+                        fontFamily: 'Pretendard Variable', 
+                        fontWeight: 400, 
+                        lineHeight: '90%', 
+                        letterSpacing: '-1.8px', 
+                        fontSize: '40.5pt',
+                        color: '#000000'
+                      }}
+                    />
+                  </div>
+                  <div style={{ height: '1.05em', overflow: 'visible', lineHeight: '1.05em', display: 'inline-flex', alignItems: 'flex-end' }}>
+                    <VerticalCarouselText
+                      text="Eyes"
+                      duration={4500}
+                      stagger={180}
+                      enableColorAnimation={false}
+                      characterClassName="vertical-carousel-v2-char"
+                      className="vertical-carousel-v2"
+                      style={{ 
+                        fontFamily: 'Pretendard Variable', 
+                        fontWeight: 400, 
+                        lineHeight: '90%', 
+                        letterSpacing: '-1.8px', 
+                        fontSize: '40.5pt',
+                        color: '#000000'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -703,7 +667,10 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
             <div
               style={{
                 position: 'absolute',
-                top: '-200%', // 버튼들을 더 위로 올림
+                // NOTE: top 퍼센트는 "부모(타이틀 영역) 높이" 기준이라,
+                // 타이틀 줄 수 변화로 버튼 위치가 크게 흔들릴 수 있음.
+                // (Gangnam/Eyes를 2줄로 고정하면서 부모 높이가 커져 기존 -200%가 과하게 적용됨)
+                top: '-150%',
                 left: 0,
                 right: 0,
                 display: 'grid',

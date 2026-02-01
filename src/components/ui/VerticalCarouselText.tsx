@@ -90,8 +90,14 @@ export default function VerticalCarouselText({
           position: relative;
           display: inline-flex;
           overflow: hidden;
-          height: 1em;
-          line-height: 1;
+          /*
+            NOTE:
+            g / y 같은 descender(아래로 내려가는 획)가 있는 글자가
+            애니메이션 후에 잘려 보이는 문제를 방지하기 위해,
+            마스크(overflow: hidden)는 유지하되 1em보다 약간 큰 높이를 확보한다.
+          */
+          height: 1.18em;
+          line-height: 1.18;
         }
 
         .vertical-carousel-track {
@@ -110,6 +116,7 @@ export default function VerticalCarouselText({
         .vertical-carousel-letter {
           display: block;
           transform: translateY(0%);
+          line-height: 1.18;
         }
 
         .vertical-carousel-space {
