@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import Image from 'next/image';
 import Typewriter from './ui/Typewriter';
 import VerticalCarouselText from './ui/VerticalCarouselText';
 import { SplitText } from './ui';
@@ -22,6 +23,13 @@ const BUTTON_OPTIONS = [
   '친구랑 같이',
   '가족과 함께',
   '혼자서 자유롭게',
+];
+
+const BUTTON_IMAGE_SRCS = [
+  '/landing_btn_images/01.png',
+  '/landing_btn_images/02.png',
+  '/landing_btn_images/03.png',
+  '/landing_btn_images/04.png',
 ];
 
 export default function LandingPageV2({ onComplete, showBlob = true, onSelectOption }: LandingPageV2Props) {
@@ -638,7 +646,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
               className="text-left"
               style={{
                 position: 'absolute',
-                top: 0,
+                top: 24,
                 left: 0,
                 right: 0,
                 opacity: newTextOpacity * questionTextOpacity,
@@ -695,11 +703,11 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
             <div
               style={{
                 position: 'absolute',
-                top: '-150%', // 버튼들이 너무 위로 올라가서 아래로 내림
+                top: '-200%', // 버튼들을 더 위로 올림
                 left: 0,
                 right: 0,
-                display: 'flex',
-                flexDirection: 'column',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: '12px',
                 maxWidth: 'min(500px, 92vw)',
                 width: '100%',
@@ -708,149 +716,107 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                 zIndex: 70,
               }}
             >
-            {/* 첫 번째 줄: '연인과 둘이' */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                key={BUTTON_OPTIONS[0]}
-                onClick={() => handleButtonClick(BUTTON_OPTIONS[0])}
-                className="touch-manipulation active:scale-95"
-                style={{
-                  display: 'inline-flex',
-                  padding: '14px 20px',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '10px',
-                  borderRadius: '30px',
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)',
-                  border: '1px solid rgba(255, 255, 255, 0.45)',
-                  boxShadow: '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)',
-                  backdropFilter: 'blur(22px) saturate(1.55)',
-                  WebkitBackdropFilter: 'blur(22px) saturate(1.55)',
-                  color: '#000',
-                  fontSize: '18px',
-                  letterSpacing: '-0.9px',
-                  fontFamily: 'Pretendard Variable',
-                  fontWeight: 300,
-                  lineHeight: '130%',
-                  cursor: 'pointer',
-                  transition: 'transform 160ms ease, box-shadow 160ms ease, background 160ms ease',
-                  textAlign: 'center',
-                  width: 'calc((100% - 12px) / 2)', // '친구랑 같이' 버튼과 동일한 너비
-                  minWidth: 0,
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 24px 46px rgba(36, 82, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.92)';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.52) 48%, rgba(255, 255, 255, 0.26) 100%)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)';
-                }}
-              >
-                {BUTTON_OPTIONS[0]}
-              </button>
-            </div>
-
-            {/* 두 번째 줄: '친구랑 같이', '가족과 함께' */}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', width: '100%' }}>
-              {[BUTTON_OPTIONS[1], BUTTON_OPTIONS[2]].map((option, index) => (
+              {BUTTON_OPTIONS.map((option, idx) => (
                 <button
                   key={option}
                   onClick={() => handleButtonClick(option)}
+                  aria-label={option}
                   className="touch-manipulation active:scale-95"
                   style={{
-                    display: 'inline-flex',
-                    padding: '14px 20px',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
+                    width: '100%',
+                    aspectRatio: '1 / 1',
+                    position: 'relative',
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
+                    justifyContent: 'center',
+                    padding: 0,
                     borderRadius: '30px',
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)',
+                    background:
+                      // 아래로 갈수록 white가 진해지는 레이어 + 기존 글래스 그라디언트
+                      'linear-gradient(180deg, rgba(255, 255, 255, 0.00) 30%, rgba(255, 255, 255, 0.8) 90%), linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.14) 100%)',
                     border: '1px solid rgba(255, 255, 255, 0.45)',
-                    boxShadow: '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)',
-                    backdropFilter: 'blur(22px) saturate(1.55)',
-                    WebkitBackdropFilter: 'blur(22px) saturate(1.55)',
+                    boxShadow:
+                      '0 18px 36px rgba(36, 82, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.86)',
+                    backdropFilter: 'blur(22px) saturate(1.35)',
+                    WebkitBackdropFilter: 'blur(22px) saturate(1.35)',
                     color: '#000',
-                    fontSize: '18px',
-                    letterSpacing: '-0.9px',
-                    fontFamily: 'Pretendard Variable',
-                    fontWeight: 300,
-                    lineHeight: '130%',
                     cursor: 'pointer',
                     transition: 'transform 160ms ease, box-shadow 160ms ease, background 160ms ease',
                     textAlign: 'center',
-                    width: 'calc((100% - 12px) / 2)', // 두 번째 줄 버튼 너비
                     minWidth: 0,
-                    whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 24px 46px rgba(36, 82, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.92)';
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.52) 48%, rgba(255, 255, 255, 0.26) 100%)';
+                    e.currentTarget.style.boxShadow =
+                      '0 24px 46px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.92)';
+                    e.currentTarget.style.background =
+                      'linear-gradient(180deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.62) 100%), linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.34) 55%, rgba(255, 255, 255, 0.18) 100%)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)';
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)';
+                    e.currentTarget.style.boxShadow =
+                      '0 18px 36px rgba(36, 82, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.86)';
+                    e.currentTarget.style.background =
+                      'linear-gradient(180deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.55) 100%), linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.14) 100%)';
                   }}
                 >
-                  {option}
+                  {/* 1:1 이미지 div */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: '10px',
+                      borderRadius: '26px',
+                      background: 'rgba(255, 255, 255, 0.30)',
+                      border: '1px solid rgba(255, 255, 255, 0.40)',
+                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55)',
+                      zIndex: 1,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Image
+                      src={BUTTON_IMAGE_SRCS[idx] ?? BUTTON_IMAGE_SRCS[0]}
+                      alt={option}
+                      fill
+                      sizes="(max-width: 640px) 44vw, 220px"
+                      style={{ objectFit: 'contain' }}
+                      priority={idx === 0}
+                    />
+                    {/* 상단은 선명, 하단은 뿌옇게: white 0% -> white 100% */}
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background:
+                          'linear-gradient(180deg, rgba(255, 255, 255, 0.00) 37.89%, #FFF 100%)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+
+                  {/* 버튼 텍스트 (이미지/그라디언트에 영향 없이 상단 레이어) */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      bottom: '14px',
+                      zIndex: 2,
+                      color: '#000',
+                      textAlign: 'center',
+                      fontFamily: 'Pretendard Variable',
+                      fontSize: '15px',
+                      fontStyle: 'normal',
+                      fontWeight: 400,
+                      lineHeight: '142%',
+                      letterSpacing: '-0.75px',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {option}
+                  </div>
                 </button>
               ))}
-            </div>
-
-            {/* 세 번째 줄: '혼자서 자유롭게' */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                key={BUTTON_OPTIONS[3]}
-                onClick={() => handleButtonClick(BUTTON_OPTIONS[3])}
-                className="touch-manipulation active:scale-95"
-                style={{
-                  display: 'inline-flex',
-                  padding: '14px 20px',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '10px',
-                  borderRadius: '30px',
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)',
-                  border: '1px solid rgba(255, 255, 255, 0.45)',
-                  boxShadow: '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)',
-                  backdropFilter: 'blur(22px) saturate(1.55)',
-                  WebkitBackdropFilter: 'blur(22px) saturate(1.55)',
-                  color: '#000',
-                  fontSize: '18px',
-                  letterSpacing: '-0.9px',
-                  fontFamily: 'Pretendard Variable',
-                  fontWeight: 300,
-                  lineHeight: '130%',
-                  cursor: 'pointer',
-                  transition: 'transform 160ms ease, box-shadow 160ms ease, background 160ms ease',
-                  textAlign: 'center',
-                  width: 'auto', // 작은 화면에서도 줄바꿈 없이 내용 너비만큼
-                  minWidth: 0,
-                  maxWidth: '100%',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 24px 46px rgba(36, 82, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.92)';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.52) 48%, rgba(255, 255, 255, 0.26) 100%)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 18px 36px rgba(36, 82, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.88)';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.42) 45%, rgba(255, 255, 255, 0.18) 100%)';
-                }}
-              >
-                {BUTTON_OPTIONS[3]}
-              </button>
-            </div>
           </div>
         )}
         </div>
