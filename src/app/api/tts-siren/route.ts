@@ -6,7 +6,7 @@ import { getEnv } from '@/lib/utils';
 // NOTE:
 // - 현재 기본값은 stage 엔드포인트(public-stage-siren-gw)로 유지하되,
 //   운영/스테이징 전환이 가능하도록 env로 오버라이드할 수 있게 함.
-const SIREN_GW_BASE_URL = getEnv('SIREN_GW_BASE_URL', 'https://public-stage-siren-gw.io.naver.com');
+const SIREN_GW_BASE_URL = getEnv('SIREN_GW_BASE_URL', 'https://public-siren-gw.io.naver.com');
 const SIREN_GW_PATH = getEnv('SIREN_GW_PATH', '/tts/makeTTS');
 const X_NAVER_SVCID = getEnv('SIREN_X_NAVER_SVCID', 'coex');
 const X_CONSUMER_ID = getEnv('SIREN_X_CONSUMER_ID', 'siren-gw.coex');
