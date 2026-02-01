@@ -16,9 +16,20 @@ type TTSOutputFormat = 'mp3' | 'wav';
 const DEFAULT_TTS_OUTPUT_FORMAT: TTSOutputFormat =
   process.env.NEXT_PUBLIC_TTS_AUDIO_FORMAT === 'mp3' ? 'mp3' : 'wav';
 
+// WAV일 때 샘플레이트를 명시하지 않으면(또는 prod 기본값이 낮으면) 고역이 잘린 듯 들릴 수 있습니다.
+// 기본값은 48000Hz로 두되, 필요 시 env로 조정 가능합니다.
+const DEFAULT_TTS_WAV_SAMPLING_RATE = (() => {
+  const raw = process.env.NEXT_PUBLIC_TTS_WAV_SAMPLING_RATE;
+  const parsed = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(parsed)) return 48000;
+  // 안전 범위로 제한
+  if (parsed <= 0) return 48000;
+  return Math.floor(parsed);
+})();
+
 export async function requestTTS(text: string, options: RequestTTSOptions = {}): Promise<Blob> {
   // Siren TTS API 사용 (기존 CLOVA Voice 대체)
-  const request = {
+  const request: Record<string, unknown> = {
     text,
     speaker: 'xsori', // Siren TTS 기본 화자
     speed: -1,        // 1.11배 빠르게 (기존 CLOVA의 '-1'과 유사한 효과)
@@ -26,6 +37,10 @@ export async function requestTTS(text: string, options: RequestTTSOptions = {}):
     alpha: 0,         // 기본 음색
     format: DEFAULT_TTS_OUTPUT_FORMAT, // 오디오 포맷 (기본: wav)
   };
+
+  if (DEFAULT_TTS_OUTPUT_FORMAT === 'wav') {
+    request.samplingRate = DEFAULT_TTS_WAV_SAMPLING_RATE;
+  }
 
   const startTime = Date.now();
   console.log('[TTS] Request started:', { textLength: text.length, text: text.substring(0, 50) + '...' });
