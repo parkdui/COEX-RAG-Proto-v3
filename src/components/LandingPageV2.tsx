@@ -177,23 +177,23 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
     }
   }, [newTextOpacity]);
 
-  // 버튼 옵션과 mp3 파일 매핑
-  const getMp3FileForOption = (option: string): string | null => {
+  // 버튼 옵션과 wav 파일 매핑
+  const getWavFileForOption = (option: string): string | null => {
     const mapping: Record<string, string> = {
-      '가족과 함께': '1-1.mp3',
-      '연인과 둘이': '2-1.mp3',
-      '친구랑 같이': '3-1.mp3',
-      '혼자서 자유롭게': '4-1.mp3',
+      '가족과 함께': '1-1.wav',
+      '연인과 둘이': '2-1.wav',
+      '친구랑 같이': '3-1.wav',
+      '혼자서 자유롭게': '4-1.wav',
     };
     return mapping[option] || null;
   };
 
-  // mp3 파일 재생 함수
-  const playMp3File = useCallback((filename: string) => {
+  // wav 파일 재생 함수
+  const playWavFile = useCallback((filename: string) => {
     const audio = new Audio(`/pre-recordings/${filename}`);
     audio.volume = 1.0;
     audio.play().catch((error) => {
-      console.error('MP3 재생 실패:', error);
+      console.error('WAV 재생 실패:', error);
     });
     return audio;
   }, []);
@@ -286,14 +286,14 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
       finishToMainWhenReady(option);
     }, 8100);
     
-    // 선택된 옵션에 해당하는 mp3 파일 재생 (0.8초 지연)
-    const mp3File = getMp3FileForOption(option);
-    if (mp3File) {
+    // 선택된 옵션에 해당하는 wav 파일 재생 (0.8초 지연)
+    const wavFile = getWavFileForOption(option);
+    if (wavFile) {
       setTimeout(() => {
-        optionAudioRef.current = playMp3File(mp3File);
+        optionAudioRef.current = playWavFile(wavFile);
       }, 800);
     }
-  }, [finishToMainWhenReady, handleBlobArrived, onSelectOption, playSound, playMp3File, selectedOption]);
+  }, [finishToMainWhenReady, handleBlobArrived, onSelectOption, playSound, playWavFile, selectedOption]);
 
   useEffect(() => {
     return () => {

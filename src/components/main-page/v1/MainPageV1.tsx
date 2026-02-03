@@ -139,26 +139,26 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
   const GreetingTypewriter = typewriterComponentMap[typewriterVariant];
   
-  // 버튼 옵션과 mp3 파일 매핑 (MainPage 전환 시)
-  const getMp3FileForMainPage = (option: string): string | null => {
+  // 버튼 옵션과 wav 파일 매핑 (MainPage 전환 시)
+  const getWavFileForMainPage = (option: string): string | null => {
     const mapping: Record<string, string> = {
-      '가족과 함께': '1-2.mp3',
-      '연인과 둘이': '2-2.mp3',
-      '친구랑 같이': '3-2.mp3',
-      '혼자서 자유롭게': '4-2.mp3',
+      '가족과 함께': '1-2.wav',
+      '연인과 둘이': '2-2.wav',
+      '친구랑 같이': '3-2.wav',
+      '혼자서 자유롭게': '4-2.wav',
     };
     return mapping[option] || null;
   };
 
-  // MainPage mp3 재생 추적을 위한 ref (중복 재생 방지)
-  const mainPageMp3PlayedRef = useRef<string | null>(null);
+  // MainPage wav 재생 추적을 위한 ref (중복 재생 방지)
+  const mainPageWavPlayedRef = useRef<string | null>(null);
   // timeout과 audio를 저장할 ref
-  const mainPageMp3TimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const mainPageMp3AudioRef = useRef<HTMLAudioElement | null>(null);
+  const mainPageWavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mainPageWavAudioRef = useRef<HTMLAudioElement | null>(null);
   // 재생 시작 플래그 (cleanup에서 timeout 취소 방지)
-  const mainPageMp3StartedRef = useRef<boolean>(false);
+  const mainPageWavStartedRef = useRef<boolean>(false);
 
-  // MainPage 마운트 시 mp3 재생 (0.8초 지연, 중복 재생 방지)
+  // MainPage 마운트 시 wav 재생 (0.8초 지연, 중복 재생 방지)
   useEffect(() => {
     console.log('[MainPage] useEffect 실행됨, selectedOnboardingOption:', selectedOnboardingOption);
     
@@ -169,49 +169,49 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     }
 
     // 이미 재생한 옵션이면 스킵
-    if (mainPageMp3PlayedRef.current === selectedOnboardingOption) {
+    if (mainPageWavPlayedRef.current === selectedOnboardingOption) {
       console.log('[MainPage] 이미 재생한 옵션이어서 스킵:', selectedOnboardingOption);
       return;
     }
 
-    const mp3File = getMp3FileForMainPage(selectedOnboardingOption);
-    if (!mp3File) {
-      console.log('[MainPage] mp3 파일을 찾을 수 없음:', selectedOnboardingOption);
+    const wavFile = getWavFileForMainPage(selectedOnboardingOption);
+    if (!wavFile) {
+      console.log('[MainPage] wav 파일을 찾을 수 없음:', selectedOnboardingOption);
       return;
     }
 
     // 재생 표시를 먼저 설정하여 중복 방지
-    mainPageMp3PlayedRef.current = selectedOnboardingOption;
-    mainPageMp3StartedRef.current = false; // 재생 시작 플래그 초기화
+    mainPageWavPlayedRef.current = selectedOnboardingOption;
+    mainPageWavStartedRef.current = false; // 재생 시작 플래그 초기화
     
-    console.log('[MainPage] MP3 재생 예정:', mp3File, '옵션:', selectedOnboardingOption);
+    console.log('[MainPage] WAV 재생 예정:', wavFile, '옵션:', selectedOnboardingOption);
     
     // 0.8초 지연 후 재생
-    mainPageMp3TimeoutRef.current = setTimeout(() => {
-      mainPageMp3StartedRef.current = true; // 재생 시작 플래그 설정
-      console.log('[MainPage] MP3 재생 시작:', mp3File);
-      const audio = new Audio(`/pre-recordings/${mp3File}`);
-      mainPageMp3AudioRef.current = audio; // ref에 저장
+    mainPageWavTimeoutRef.current = setTimeout(() => {
+      mainPageWavStartedRef.current = true; // 재생 시작 플래그 설정
+      console.log('[MainPage] WAV 재생 시작:', wavFile);
+      const audio = new Audio(`/pre-recordings/${wavFile}`);
+      mainPageWavAudioRef.current = audio; // ref에 저장
       audio.volume = 1.0;
       audio.play().then(() => {
-        console.log('[MainPage] MP3 재생 성공:', mp3File);
+        console.log('[MainPage] WAV 재생 성공:', wavFile);
       }).catch((error) => {
-        console.error('[MainPage] MP3 재생 실패:', error, '파일:', mp3File);
+        console.error('[MainPage] WAV 재생 실패:', error, '파일:', wavFile);
         // 재생 실패 시 ref 초기화하여 재시도 가능하도록
-        mainPageMp3PlayedRef.current = null;
-        mainPageMp3AudioRef.current = null;
-        mainPageMp3StartedRef.current = false;
+        mainPageWavPlayedRef.current = null;
+        mainPageWavAudioRef.current = null;
+        mainPageWavStartedRef.current = false;
       });
       
       // 재생 완료 후 정리
       audio.addEventListener('ended', () => {
-        mainPageMp3AudioRef.current = null;
-        mainPageMp3StartedRef.current = false;
+        mainPageWavAudioRef.current = null;
+        mainPageWavStartedRef.current = false;
       });
     }, 800);
 
     return () => {
-      console.log('[MainPage] useEffect cleanup 실행, 재생 시작 여부:', mainPageMp3StartedRef.current);
+      console.log('[MainPage] useEffect cleanup 실행, 재생 시작 여부:', mainPageWavStartedRef.current);
       // React Strict Mode에서 첫 번째 cleanup이 실행되어도 재생은 계속되도록
       // cleanup에서 timeout을 취소하지 않음 (재생이 시작되면 계속되도록)
       // 단, 컴포넌트가 완전히 언마운트되는 경우를 대비해 audio만 정리
@@ -220,60 +220,60 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     };
   }, [selectedOnboardingOption]);
 
-  // ending.mp3 재생을 위한 ref들
-  const endingMp3PlayedRef = useRef<boolean>(false);
-  const endingMp3TimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const endingMp3AudioRef = useRef<HTMLAudioElement | null>(null);
-  const endingMp3StartedRef = useRef<boolean>(false);
+  // ending.wav 재생을 위한 ref들
+  const endingWavPlayedRef = useRef<boolean>(false);
+  const endingWavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const endingWavAudioRef = useRef<HTMLAudioElement | null>(null);
+  const endingWavStartedRef = useRef<boolean>(false);
 
-  // FinalMessageScreen 표시 시 ending.mp3 재생 (0.3초 지연, 1회 재생)
+  // FinalMessageScreen 표시 시 ending.wav 재생 (0.3초 지연, 1회 재생)
   useEffect(() => {
     if (!showFinalMessage) {
       return;
     }
 
     // 이미 재생했으면 스킵
-    if (endingMp3PlayedRef.current) {
-      console.log('[Ending] 이미 재생한 ending.mp3이어서 스킵');
+    if (endingWavPlayedRef.current) {
+      console.log('[Ending] 이미 재생한 ending.wav이어서 스킵');
       return;
     }
 
     // 재생 표시를 먼저 설정하여 중복 방지
-    endingMp3PlayedRef.current = true;
-    endingMp3StartedRef.current = false;
+    endingWavPlayedRef.current = true;
+    endingWavStartedRef.current = false;
 
-    console.log('[Ending] ending.mp3 재생 예정 (0.3초 지연)');
+    console.log('[Ending] ending.wav 재생 예정 (0.3초 지연)');
 
     // 0.3초 지연 후 재생
-    endingMp3TimeoutRef.current = setTimeout(() => {
-      endingMp3StartedRef.current = true;
-      console.log('[Ending] ending.mp3 재생 시작');
-      const audio = new Audio('/pre-recordings/ending.mp3');
-      endingMp3AudioRef.current = audio;
+    endingWavTimeoutRef.current = setTimeout(() => {
+      endingWavStartedRef.current = true;
+      console.log('[Ending] ending.wav 재생 시작');
+      const audio = new Audio('/pre-recordings/ending.wav');
+      endingWavAudioRef.current = audio;
       audio.volume = 1.0;
       audio.play().then(() => {
-        console.log('[Ending] ending.mp3 재생 성공');
+        console.log('[Ending] ending.wav 재생 성공');
       }).catch((error) => {
-        console.error('[Ending] ending.mp3 재생 실패:', error);
+        console.error('[Ending] ending.wav 재생 실패:', error);
         // 재생 실패 시 ref 초기화하여 재시도 가능하도록
-        endingMp3PlayedRef.current = false;
-        endingMp3AudioRef.current = null;
-        endingMp3StartedRef.current = false;
+        endingWavPlayedRef.current = false;
+        endingWavAudioRef.current = null;
+        endingWavStartedRef.current = false;
       });
 
       // 재생 완료 후 정리
       audio.addEventListener('ended', () => {
-        console.log('[Ending] ending.mp3 재생 완료');
-        endingMp3AudioRef.current = null;
-        endingMp3StartedRef.current = false;
+        console.log('[Ending] ending.wav 재생 완료');
+        endingWavAudioRef.current = null;
+        endingWavStartedRef.current = false;
       });
     }, 300);
 
     return () => {
       // cleanup: timeout이 아직 실행되지 않았으면 취소
-      if (endingMp3TimeoutRef.current && !endingMp3StartedRef.current) {
-        clearTimeout(endingMp3TimeoutRef.current);
-        endingMp3TimeoutRef.current = null;
+      if (endingWavTimeoutRef.current && !endingWavStartedRef.current) {
+        clearTimeout(endingWavTimeoutRef.current);
+        endingWavTimeoutRef.current = null;
       }
       // audio는 재생이 시작되면 계속되도록 정리하지 않음
     };
