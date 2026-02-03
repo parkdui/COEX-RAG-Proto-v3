@@ -323,7 +323,7 @@ export const fixedQAData: FixedQA[] = [
           "{chip}라면 코엑스 옆에 있는 '봉은사'를 추천해요. 도심 속 사찰에서 잠깐 여유로운 시간을 보내는 것은 어떠신가요?",
         keywords: ["봉은사", "산책", "휴식"],
         linkText: "봉은사 위치 보기",
-        url: "https://map.naver.com/p/entry/place/11564024",
+        url: "https://naver.me/GTn3tTCu",
         image: "/QA_Imgs/11-1.png"
       },
       {
@@ -331,7 +331,7 @@ export const fixedQAData: FixedQA[] = [
           "{chip}라면 외벽 미디어를 추천해요. 시간대마다 다른 미디어 아트와 K-POP 광고 등을 구경할 수 있어요.",
         keywords: ["미디어 파사드", "야경"],
         linkText: "미디어 파사드 위치 보기",
-        url: "https://map.naver.com/p/entry/place/1149591458",
+        url: "https://naver.me/5hua3oQi",
         image: "/QA_Imgs/9-2.png"
       },
     ],
