@@ -35,17 +35,13 @@ function detectAudioFormat(u8: Uint8Array): { format: DetectedAudioFormat; wavSa
   return { format: 'unknown' };
 }
 
-// Siren TTS API 설정 
-// NOTE:
-// - 현재 기본값은 stage 엔드포인트(public-stage-siren-gw)로 유지하되,
-//   운영/스테이징 전환이 가능하도록 env로 오버라이드할 수 있게 함.
-const SIREN_GW_BASE_URL = getEnv('SIREN_GW_BASE_URL', 'https://public-siren-gw.io.naver.com');
-const SIREN_GW_PATH = getEnv('SIREN_GW_PATH', '/tts/makeTTS');
-const X_NAVER_SVCID = getEnv('SIREN_X_NAVER_SVCID', 'coex');
-const X_CONSUMER_ID = getEnv('SIREN_X_CONSUMER_ID', 'siren-gw.coex');
-// TODO(security): 가능하면 하드코딩 값을 제거하고 배포 환경변수로만 주입하세요.
-const HMAC_KEY = getEnv('SIREN_HMAC_KEY', 'OZKCBgilLC0dXQcbtXfWdQnEvkh3BrgUO2pEMq2sBCQrePSQWRE3AhbgrldHBdbl');
-const DEFAULT_SPEAKER = getEnv('SIREN_DEFAULT_SPEAKER', 'xsori');
+// Siren TTS API 설정 (모두 .env 환경변수에서 로드)
+const SIREN_GW_BASE_URL = getEnv('SIREN_GW_BASE_URL');
+const SIREN_GW_PATH = getEnv('SIREN_GW_PATH');
+const X_NAVER_SVCID = getEnv('SIREN_X_NAVER_SVCID');
+const X_CONSUMER_ID = getEnv('SIREN_X_CONSUMER_ID');
+const HMAC_KEY = getEnv('SIREN_HMAC_KEY');
+const DEFAULT_SPEAKER = getEnv('SIREN_DEFAULT_SPEAKER');
 
 /**
  * HMAC SHA1 생성 함수
