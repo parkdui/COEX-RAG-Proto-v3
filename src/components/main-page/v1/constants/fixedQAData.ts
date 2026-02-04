@@ -273,7 +273,7 @@ export const fixedQAData: FixedQA[] = [
           "{chip}라면 '외벽 미디어'를 추천해요. 미디어 아트와 광고 등 화려한 영상미를 감상하며 인증샷 남기기 좋아요!",
         keywords: ["외벽 미디어"],
         linkText: "외벽 미디어 위치 보기",
-        url: "https://naver.me/GrqDfsRd",
+        url: "https://naver.me/F74cXVsH",
         image: "/QA_Imgs/9-2.png",
       },
     ],
