@@ -41,7 +41,7 @@ export interface Message {
   tokens?: TokenInfo;
   hits?: HitInfo[];
   segments?: TextSegment[];
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | string[];
   siteUrl?: string;
   linkText?: string; // 사이트 링크 버튼에 표시될 텍스트
   questionCategory?: QuestionCategory; // 질문 카테고리 (assistant 메시지에만 사용)

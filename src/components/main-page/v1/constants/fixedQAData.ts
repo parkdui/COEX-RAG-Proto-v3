@@ -27,7 +27,7 @@ export const CHIP_PARAPHRASING: Record<keyof typeof CHIP_VARIANTS, string[]> = {
 
 export interface FixedAnswer {
   text: string;
-  image?: string; // 기존 호환성을 위해 선택적
+  image?: string | string[]; // 기존 호환성을 위해 선택적 (슬라이드쇼: string[])
   url?: string; // 사이트 바로가기 URL
   keywords?: string[];
   linkText?: string;
@@ -42,15 +42,40 @@ export interface FixedQA {
     keywords?: string[];
     linkText?: string;
     url?: string;
-    image?: string; // 기존 호환성을 위해 선택적
+    image?: string | string[]; // 기존 호환성을 위해 선택적 (슬라이드쇼: string[])
   }>;
   soloTextTemplates?: string[];
 }
 
 // =======================
-// QA 데이터 (최종 10개) - 정리본
+// QA 데이터 (최종 11개) - 정리본
 // =======================
 export const fixedQAData: FixedQA[] = [
+  // 0. 강남아이즈 소개 (고정 추천 chip)
+  // NOTE: questionTemplate에 "{chip}"이 없어도 동작합니다. (질문 텍스트가 그대로 매칭됨)
+  {
+    topicId: "about_gangnam_eyes",
+    questionTemplate: "강남아이즈에 대해 더 알고 싶어",
+    thinkingText: "강남아이즈에 대해 알아보고 있어요",
+    answers: [
+      {
+        textTemplate:
+          "강남아이즈는 서울 삼성역 일대를\n따라 조성된 대한민국 최초\n디지털 사이니지 거리입니다.\n\n19개의 대형 LED 스크린이\n하나의 거리 안에서\n1년 365일 다채로운 빛을 펼쳐냅니다.\n\n강남아이즈에서 열리는 다양한\n행사들에 대해 좀 더 자세히 알아볼까요?",
+        keywords: ["강남아이즈", "디지털 사이니지", "안내"],
+        linkText: "강남아이즈 더 알아보기",
+        url: "https://gangnameyes.com/",
+      },
+      {
+        textTemplate:
+          "하루 세 번, 강남 도심이\n초대형 미디어 갤러리로 변하는\nC'rush Hour도 있어요. \n\n 08:25 아침엔 별마당 프로그램 연계 K-힐링 메시지가 소개돼요.\n\n12:25 점심엔 삼성역 하얏트호텔에서 즐기는 저의 K-Lifestyle이 등장해요.\n\n18:25 저녁엔 K-Arts 큐레이션이 등장하는데요, 3월까지 Kiel Mutschelknaus 작가의 'SURFACE TENSION'이 상영될 거예요.",
+        keywords: ["크러시 아워", "동시송출 프로그램", "C'rush Hour"],
+        linkText: "C'rush Hour 더 알아보기",
+        url: "https://gangnameyes.com/event/crush",
+        image: ["/QA_Imgs/0-2-1.png", "/QA_Imgs/0-2-2.png", "/QA_Imgs/0-2-3.png"],
+      },
+    ],
+  },
+
   // 1. 식당
   {
     topicId: "restaurant",

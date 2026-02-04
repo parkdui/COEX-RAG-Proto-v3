@@ -88,6 +88,9 @@ interface MainPageV1Props {
 }
 
 export default function MainPageV1({ showBlob = true, selectedOnboardingOption = null }: MainPageV1Props = { showBlob: true }) {
+  const FIXED_TOP_RECOMMENDATION = '강남아이즈에 대해 더 알고 싶어';
+  const GANGNAM_EYES_TOPIC_ID = 'about_gangnam_eyes';
+
   // 선택 옵션은 첫 질문 로깅에 반드시 필요하므로 ref로 보관 (STT 경로 등 deps 누락/타이밍 이슈 방지)
   const onboardingOptionRef = useRef<string | null>(selectedOnboardingOption);
   useEffect(() => {
@@ -98,10 +101,11 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   const answerContainerRef = useRef<HTMLDivElement>(null); // 답변 container를 감싸는 div
   const chatState = useChatState();
   const voiceState = useVoiceRecording();
-  const { isPlayingTTS, playFull, prepareAuto } = useCoexTTS();
+  const { isPlayingTTS, playFull, prepareAuto, stopCurrentPlayback } = useCoexTTS();
   // 사전 로드 제거: 필요할 때만 로드 (지연 로드)
   const { playSound, stopAllSounds } = useSoundManager();
   const thinkingSoundInstanceRef = useRef<number | null>(null);
+  const fixedQa0AudioRef = useRef<HTMLAudioElement | null>(null);
   const [isConversationEnded, setIsConversationEnded] = useState(false);
   const [showEndMessage, setShowEndMessage] = useState(false); // 개발용: true로 설정하여 바로 확인 가능
   const [showSummary, setShowSummary] = useState(false);
@@ -219,6 +223,100 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       console.log('[MainPage] cleanup 실행됨 (timeout은 유지하여 재생 보장)');
     };
   }, [selectedOnboardingOption]);
+
+  const isGangnamEyesOrSignageQuestion = useCallback((rawText: string) => {
+    if (!rawText) return false;
+    const normalized = rawText.toLowerCase().replace(/\s+/g, '');
+    // 한글/영문 모두 커버 (사용자 입력/음성 인식 오타를 고려해 넓게 잡음)
+    const keywords = [
+      '강남아이즈',
+      'gangnameyes',
+      'gangnameye',
+      'gangnameyes?',
+      'gangnameyes.',
+      'gangnameyes!',
+      'gangnameyes,',
+      'gangnameyes/',
+      'gangnameyes-',
+      'gangnameyes_',
+      'gangnameyes.com',
+      'gangnameyes홈페이지',
+      'gangnameyes사이트',
+      'gangnameyes웹',
+      'gangnameyes안내',
+      'gangnameyes소개',
+      'gangnameyes정보',
+      'gangnameyes뭐야',
+      'gangnameyes뭔데',
+      'gangnameyes어디',
+      'gangnameyes',
+      'gangnameyesstreet',
+      'gangnameyes거리',
+      '디지털사이니지',
+      '사이니지',
+      'digitalsignage',
+      'digital-signage',
+      'digital signage',
+      'led스크린',
+      '대형led',
+      '대형스크린',
+      '미디어월',
+      '미디어파사드',
+      "c'rushhour",
+      'crushhour',
+      '크러시아워',
+      '크러쉬아워',
+    ].map((k) => k.toLowerCase().replace(/\s+/g, ''));
+
+    return keywords.some((k) => normalized.includes(k));
+  }, []);
+
+  const playFixedQa0Wav = useCallback(() => {
+    // TTS가 재생 중이면 중지
+    stopCurrentPlayback();
+
+    // 이전 재생이 남아있으면 정리
+    if (fixedQa0AudioRef.current) {
+      try {
+        fixedQa0AudioRef.current.pause();
+        fixedQa0AudioRef.current.currentTime = 0;
+      } catch {
+        // ignore
+      }
+      fixedQa0AudioRef.current = null;
+    }
+
+    const audio = new Audio('/pre-recordings/fixedQA-0.wav');
+    fixedQa0AudioRef.current = audio;
+    audio.volume = 1.0;
+
+    audio.play().catch((error) => {
+      console.error('[FixedQA] fixedQA-0.wav 재생 실패:', error);
+      if (fixedQa0AudioRef.current === audio) {
+        fixedQa0AudioRef.current = null;
+      }
+    });
+
+    audio.addEventListener('ended', () => {
+      if (fixedQa0AudioRef.current === audio) {
+        fixedQa0AudioRef.current = null;
+      }
+    });
+  }, [stopCurrentPlayback]);
+
+  // 컴포넌트 언마운트 시 fixedQA wav 정리
+  useEffect(() => {
+    return () => {
+      if (fixedQa0AudioRef.current) {
+        try {
+          fixedQa0AudioRef.current.pause();
+        } catch {
+          // ignore
+        }
+        fixedQa0AudioRef.current = null;
+      }
+    };
+  }, []);
 
   // ending.wav 재생을 위한 ref들
   const endingWavPlayedRef = useRef<boolean>(false);
@@ -394,14 +492,18 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   // randomRecommendations를 직접 useMemo로 계산 (함수 래핑 제거로 성능 개선)
   const randomRecommendations = useMemo(() => {
     // selectedOnboardingOption에 따라 필터링된 질문들 가져오기
-    const questionData = getQuestionsForOption(selectedOnboardingOption);
+    // 고정 chip은 하단 랜덤 2개 후보에서는 제외 (중복 노출 방지)
+    const questionData = getQuestionsForOption(selectedOnboardingOption).filter(
+      (q) => q.question !== FIXED_TOP_RECOMMENDATION
+    );
     
     // 선택된 추천 제외
     const availableQuestions = questionData.filter(q => !selectedRecommendations.has(q.question));
     // 선택된 추천이 너무 많으면 다시 사용 가능하도록
-    const questionsToUse = availableQuestions.length >= 3 ? availableQuestions : questionData;
+    // (최상단 1개는 고정이므로, 하단 2개만 랜덤으로 뽑는다)
+    const questionsToUse = availableQuestions.length >= 2 ? availableQuestions : questionData;
     
-    // 3개 chips가 모두 다른 paraphrasing을 사용하도록 보장
+    // 하단 2개 chips가 가능한 한 다른 paraphrasing을 사용하도록 보장
     const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
     const selected: typeof questionData = [];
     const usedParaphrasings = new Set<string>();
@@ -412,28 +514,29 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       if (paraphrasing && !usedParaphrasings.has(paraphrasing)) {
         selected.push(q);
         usedParaphrasings.add(paraphrasing);
-        if (selected.length >= 3) break;
+        if (selected.length >= 2) break;
       } else if (!paraphrasing) {
         // paraphrasing을 추출할 수 없는 경우에도 추가 (fallback)
         // 하지만 이미 사용된 paraphrasing과 중복되지 않도록 확인
-        if (selected.length < 3) {
+        if (selected.length < 2) {
           selected.push(q);
-          if (selected.length >= 3) break;
+          if (selected.length >= 2) break;
         }
       }
     }
     
-    // 3개를 못 채운 경우 나머지 추가 (paraphrasing 중복 허용)
-    if (selected.length < 3) {
+    // 2개를 못 채운 경우 나머지 추가 (paraphrasing 중복 허용)
+    if (selected.length < 2) {
       for (const q of shuffled) {
         if (!selected.some(s => s.question === q.question)) {
           selected.push(q);
-          if (selected.length >= 3) break;
+          if (selected.length >= 2) break;
         }
       }
     }
     
-    return selected.slice(0, 3).map(q => q.question);
+    const bottomTwo = selected.slice(0, 2).map(q => q.question);
+    return [FIXED_TOP_RECOMMENDATION, ...bottomTwo].slice(0, 3);
   }, [selectedRecommendations, selectedOnboardingOption]);
 
   // Chip indices refs 업데이트
@@ -818,7 +921,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   );
 
   const pushAssistantMessage = useCallback(
-    async (response: { answer?: string; tokens?: any; hits?: any[]; defaultAnswer?: string; thumbnailUrl?: string; siteUrl?: string; linkText?: string; ttsText?: string; skipTTS?: boolean; questionCategory?: QuestionCategory }) => {
+    async (response: { answer?: string; tokens?: any; hits?: any[]; defaultAnswer?: string; thumbnailUrl?: string | string[]; siteUrl?: string; linkText?: string; ttsText?: string; skipTTS?: boolean; questionCategory?: QuestionCategory }) => {
       const answerText = response.answer || response.defaultAnswer || '(응답 없음)';
       
       const assistantMessage = createAssistantMessage({
@@ -859,6 +962,39 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       }
     },
     [chatState.addMessage, chatState.sessionId, chatState.rowIndex, prepareAuto],
+  );
+
+  const respondWithGangnamEyesFixedQA = useCallback(
+    async (sourceQuestion: string) => {
+      const topic = fixedQAData.find((t) => t.topicId === GANGNAM_EYES_TOPIC_ID);
+      if (!topic || !Array.isArray(topic.answers) || topic.answers.length === 0) {
+        return false;
+      }
+
+      // 고정 답변 플로우에서는 TTS 대신 사전 녹음 wav 사용
+      playFixedQa0Wav();
+
+      const nextMessageNumber = chatState.messageNumber + 1;
+
+      for (let i = 0; i < topic.answers.length; i++) {
+        const a = topic.answers[i];
+        const answerText = a.textTemplate;
+
+        await pushAssistantMessage({
+          answer: answerText,
+          defaultAnswer: answerText,
+          thumbnailUrl: a.image,
+          siteUrl: a.url,
+          linkText: a.linkText,
+          skipTTS: true,
+        });
+      }
+
+      // 여러 답변이 있어도 하나의 질문-답변 쌍으로 처리
+      chatState.setMessageNumber(nextMessageNumber);
+      return true;
+    },
+    [chatState.messageNumber, chatState.setMessageNumber, playFixedQa0Wav, pushAssistantMessage],
   );
 
   // 스크롤을 맨 아래로 이동
@@ -1160,6 +1296,14 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
         voiceState.setIsProcessingVoice(false);
         chatState.setIsLoading(true);
         try {
+          // 강남아이즈/디지털 사이니지 관련 질문이면 fixedQAData로 바로 응답 (API 우회)
+          if (isGangnamEyesOrSignageQuestion(recognizedText)) {
+            const topic = fixedQAData.find((t) => t.topicId === GANGNAM_EYES_TOPIC_ID);
+            setCustomThinkingText(topic?.thinkingText);
+            await respondWithGangnamEyesFixedQA(recognizedText);
+            return;
+          }
+
           // 정보 요구 질문인지 확인하고 카테고리 분류
           let questionCategory: QuestionCategory = null;
           const isInfoRequest = isInfoRequestQuestion(recognizedText);
@@ -1283,6 +1427,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     chatState.systemPrompt,
     voiceState.setIsProcessingVoice,
     pushAssistantMessage,
+    isGangnamEyesOrSignageQuestion,
+    respondWithGangnamEyesFixedQA,
     userTurnCount
   ]);
 
@@ -1478,15 +1624,23 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     // 텍스트 입력 시에는 '생각 중이에요' 화면에 사용자 메시지를 표시하지 않음 (음성 입력만 표시)
     setLastUserMessageText(null);
     
-    // thinkingText 생성 (사용자 입력 텍스트에서)
-    generateThinkingText(question);
-    
     const userMessage = createUserMessage(question);
     chatState.addMessage(userMessage);
     chatState.setInputValue('');
     chatState.setIsLoading(true);
 
     try {
+      // 강남아이즈/디지털 사이니지 관련 질문이면 fixedQAData로 바로 응답 (API 우회)
+      if (isGangnamEyesOrSignageQuestion(question)) {
+        const topic = fixedQAData.find((t) => t.topicId === GANGNAM_EYES_TOPIC_ID);
+        setCustomThinkingText(topic?.thinkingText);
+        await respondWithGangnamEyesFixedQA(question);
+        return;
+      }
+
+      // thinkingText 생성 (사용자 입력 텍스트에서)
+      generateThinkingText(question);
+
       // 정보 요구 질문인지 확인하고 카테고리 분류
       let questionCategory: QuestionCategory = null;
       const isInfoRequest = isInfoRequestQuestion(question);
@@ -1592,9 +1746,10 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     chatState.systemPrompt,
     isConversationEnded,
     pushAssistantMessage,
-    generateThinkingText
-    ,
-    userTurnCount
+    generateThinkingText,
+    isGangnamEyesOrSignageQuestion,
+    respondWithGangnamEyesFixedQA,
+    userTurnCount,
   ]);
 
   const handleGoButton = useCallback(async () => {
@@ -1846,6 +2001,8 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
     if (userTurnCount >= 6) {
       return;
     }
+
+    const isFixedAboutChip = recommendation === FIXED_TOP_RECOMMENDATION;
     
     // 5. 추천 chips 클릭 시 클릭 사운드 재생
     playSound('CLICK_2', {
@@ -1977,8 +2134,13 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
               siteUrl: answerObj.url,
               linkText: answerObj.linkText,
               ttsText: combinedTTSText, // 통합 TTS 텍스트만 사용 (반드시 있어야 함)
-              skipTTS: false, // TTS 재생
+              skipTTS: isFixedAboutChip ? true : false, // 고정 chip은 TTS 대신 wav 재생
             });
+
+            // 고정 chip은 TTS 대신 사전 녹음 wav 재생
+            if (isFixedAboutChip) {
+              playFixedQa0Wav();
+            }
           } else {
             // 두 번째 답변부터: TTS 명시적으로 스킵
             await pushAssistantMessage({
@@ -2004,8 +2166,13 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
             siteUrl: answerObj.url,
             linkText: answerObj.linkText,
             ttsText: undefined,
-            skipTTS: false, // TTS 재생
+            skipTTS: isFixedAboutChip ? true : false, // 고정 chip은 TTS 대신 wav 재생
           });
+
+          // 고정 chip은 첫 답변에서만 wav 재생
+          if (isFixedAboutChip && i === 0) {
+            playFixedQa0Wav();
+          }
         }
         
         // 각 답변이 추가된 후 최상단으로 스크롤 (pushAssistantMessage 내부에서도 처리되지만 확실하게)

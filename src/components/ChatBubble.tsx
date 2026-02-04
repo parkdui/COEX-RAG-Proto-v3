@@ -7,6 +7,7 @@ import { ChatBubbleProps } from '@/types';
 import { getSegmentStyleClass, getSegmentIcon } from '@/lib/textSplitter';
 import { SplitWords, TypingEffect, SplitText, Typewriter, ChatTypewriterV1, ChatTypewriterV2, ChatTypewriterV3 } from '@/components/ui';
 import AnimatedOutlineStroke from '@/components/ui/AnimatedOutlineStroke';
+import { CrossfadeSlideshow } from '@/components/ui/CrossfadeSlideshow';
 import { getCategoryImage } from '@/lib/categoryImages';
 
 type TypewriterVariant = 'v1' | 'v2' | 'v3';
@@ -1241,25 +1242,33 @@ const SegmentedMessageComponent: React.FC<{
     };
   }, [segments, message.content]);
 
-  const { imageUrl, shouldShowImage } = useMemo(() => {
-    const url = typeof message.thumbnailUrl === 'string' ? message.thumbnailUrl.trim() : '';
-    const hasThumbnail = url.length > 0;
+  const { imageUrls, primaryImageUrl, isSlideshow, shouldShowImage } = useMemo(() => {
+    const rawThumb = message.thumbnailUrl;
+    const thumbnailUrls = Array.isArray(rawThumb)
+      ? rawThumb.filter((u) => typeof u === 'string').map((u) => u.trim()).filter(Boolean)
+      : (typeof rawThumb === 'string' ? [rawThumb.trim()] : []);
+
+    const hasThumbnail = thumbnailUrls.length > 0;
     const hasCategory = message.questionCategory !== null && message.questionCategory !== undefined;
     
     // thumbnailUrl이 있으면 우선 사용, 없으면 카테고리 이미지 사용
     const categoryImageUrl = getCategoryImage(message.questionCategory);
-    const finalImageUrl = hasThumbnail ? url : (categoryImageUrl || '');
+    const finalImageUrls = hasThumbnail
+      ? thumbnailUrls
+      : (categoryImageUrl ? [categoryImageUrl] : []);
     
-    const result = { 
-      imageUrl: finalImageUrl, 
-      shouldShowImage: hasThumbnail || hasCategory 
+    const result = {
+      imageUrls: finalImageUrls,
+      primaryImageUrl: finalImageUrls[0] || '',
+      isSlideshow: Array.isArray(rawThumb) && thumbnailUrls.length > 1,
+      shouldShowImage: hasThumbnail || hasCategory,
     };
     console.log('[ChatBubble] 이미지 표시 조건:', {
       hasThumbnail,
       hasCategory,
       questionCategory: message.questionCategory,
       categoryImageUrl,
-      finalImageUrl: result.imageUrl,
+      finalImageUrls: result.imageUrls,
       shouldShowImage: result.shouldShowImage
     });
     return result;
@@ -1380,17 +1389,21 @@ const SegmentedMessageComponent: React.FC<{
                     transition: hasCategory ? 'none' : 'transform 0.6s ease-in-out, opacity 0.6s ease-in-out',
                   }}
                 >
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="이벤트 썸네일"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
+                  {primaryImageUrl ? (
+                    isSlideshow ? (
+                      <CrossfadeSlideshow urls={imageUrls} alt="이벤트 썸네일" />
+                    ) : (
+                      <img
+                        src={primaryImageUrl}
+                        alt="이벤트 썸네일"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    )
                   ) : (
                     // 카테고리별 더미 이미지 (정보 요구 질문에 대한 답변 Container용)
                     <div
@@ -1465,7 +1478,7 @@ const SegmentedMessageComponent: React.FC<{
                       </div>
                     </div>
                   )}
-                  {shouldShowSite && imageUrl && (
+                  {shouldShowSite && primaryImageUrl && (
                     <div
                       style={{
                         position: 'absolute',
@@ -1523,7 +1536,7 @@ const SegmentedMessageComponent: React.FC<{
         </div>
       );
     },
-    [displayText, firstSegmentHighlight, imageUrl, shouldShowImage, typewriterVariant, siteUrl, shouldShowSite, isSiteVisible, linkText, message.questionCategory]
+    [displayText, firstSegmentHighlight, primaryImageUrl, isSlideshow, imageUrls, shouldShowImage, typewriterVariant, siteUrl, shouldShowSite, isSiteVisible, linkText, message.questionCategory]
   );
 
   const TypewriterComponent = typewriterComponents[typewriterVariant];
@@ -1587,16 +1600,20 @@ const SegmentedMessageComponent: React.FC<{
                             background: '#f3f4f6',
                           }}
                         >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt="이벤트 썸네일"
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                              }}
-                            />
+                          {primaryImageUrl ? (
+                            isSlideshow ? (
+                              <CrossfadeSlideshow urls={imageUrls} alt="이벤트 썸네일" />
+                            ) : (
+                              <img
+                                src={primaryImageUrl}
+                                alt="이벤트 썸네일"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            )
                           ) : (
                             // 카테고리별 더미 이미지 (siteUrl 없음)
                             <div
@@ -1615,7 +1632,7 @@ const SegmentedMessageComponent: React.FC<{
                               {message.questionCategory || '이미지'}
                             </div>
                           )}
-                          {shouldShowSite && imageUrl && (
+                          {shouldShowSite && primaryImageUrl && (
                             <div
                               style={{
                                 position: 'absolute',
@@ -1790,25 +1807,33 @@ const SingleMessageComponent: React.FC<{
     };
   }, [message.content, message.role]);
 
-  const { imageUrl, shouldShowImage } = useMemo(() => {
-    const url = typeof message.thumbnailUrl === 'string' ? message.thumbnailUrl.trim() : '';
-    const hasThumbnail = url.length > 0;
+  const { imageUrls, primaryImageUrl, isSlideshow, shouldShowImage } = useMemo(() => {
+    const rawThumb = message.thumbnailUrl;
+    const thumbnailUrls = Array.isArray(rawThumb)
+      ? rawThumb.filter((u) => typeof u === 'string').map((u) => u.trim()).filter(Boolean)
+      : (typeof rawThumb === 'string' ? [rawThumb.trim()] : []);
+
+    const hasThumbnail = thumbnailUrls.length > 0;
     const hasCategory = message.questionCategory !== null && message.questionCategory !== undefined;
     
     // thumbnailUrl이 있으면 우선 사용, 없으면 카테고리 이미지 사용
     const categoryImageUrl = getCategoryImage(message.questionCategory);
-    const finalImageUrl = hasThumbnail ? url : (categoryImageUrl || '');
+    const finalImageUrls = hasThumbnail
+      ? thumbnailUrls
+      : (categoryImageUrl ? [categoryImageUrl] : []);
     
     const result = { 
-      imageUrl: finalImageUrl, 
-      shouldShowImage: hasThumbnail || hasCategory 
+      imageUrls: finalImageUrls,
+      primaryImageUrl: finalImageUrls[0] || '',
+      isSlideshow: Array.isArray(rawThumb) && thumbnailUrls.length > 1,
+      shouldShowImage: hasThumbnail || hasCategory,
     };
     console.log('[ChatBubble] 이미지 표시 조건:', {
       hasThumbnail,
       hasCategory,
       questionCategory: message.questionCategory,
       categoryImageUrl,
-      finalImageUrl: result.imageUrl,
+      finalImageUrls: result.imageUrls,
       shouldShowImage: result.shouldShowImage
     });
     return result;
@@ -1947,17 +1972,21 @@ const SingleMessageComponent: React.FC<{
                     transition: hasCategory ? 'none' : 'transform 0.6s ease-in-out',
                   }}
                 >
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="이벤트 썸네일"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
+                  {primaryImageUrl ? (
+                    isSlideshow ? (
+                      <CrossfadeSlideshow urls={imageUrls} alt="이벤트 썸네일" />
+                    ) : (
+                      <img
+                        src={primaryImageUrl}
+                        alt="이벤트 썸네일"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    )
                   ) : (
                     // 카테고리별 더미 이미지 (정보 요구 질문에 대한 답변 Container용)
                     <div
@@ -2032,7 +2061,7 @@ const SingleMessageComponent: React.FC<{
                       </div>
                     </div>
                   )}
-                  {shouldShowSite && imageUrl && (
+                  {shouldShowSite && primaryImageUrl && (
                     <div
                       style={{
                         position: 'absolute',
@@ -2090,7 +2119,7 @@ const SingleMessageComponent: React.FC<{
         </div>
       );
     },
-    [assistantHighlight, assistantText, imageUrl, shouldShowImage, typewriterVariant, siteUrl, shouldShowSite, isSiteVisible, linkText, message.questionCategory]
+    [assistantHighlight, assistantText, primaryImageUrl, isSlideshow, imageUrls, shouldShowImage, typewriterVariant, siteUrl, shouldShowSite, isSiteVisible, linkText, message.questionCategory]
   );
 
   const TypewriterComponent = typewriterComponents[typewriterVariant];
@@ -2260,16 +2289,20 @@ const SingleMessageComponent: React.FC<{
                             background: '#f3f4f6',
                           }}
                         >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt="이벤트 썸네일"
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                              }}
-                            />
+                          {primaryImageUrl ? (
+                            isSlideshow ? (
+                              <CrossfadeSlideshow urls={imageUrls} alt="이벤트 썸네일" />
+                            ) : (
+                              <img
+                                src={primaryImageUrl}
+                                alt="이벤트 썸네일"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            )
                           ) : (
                             // 카테고리별 더미 이미지 (siteUrl 없음)
                             <div
@@ -2288,7 +2321,7 @@ const SingleMessageComponent: React.FC<{
                               {message.questionCategory || '이미지'}
                             </div>
                           )}
-                          {shouldShowSite && imageUrl && (
+                          {shouldShowSite && primaryImageUrl && (
                             <div
                               style={{
                                 position: 'absolute',

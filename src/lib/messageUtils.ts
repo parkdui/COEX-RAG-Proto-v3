@@ -13,7 +13,7 @@ export function createAssistantMessage(data: {
   tokens?: any;
   hits?: any[];
   defaultAnswer?: string;
-  thumbnailUrl?: string; // 직접 thumbnailUrl을 전달할 수 있도록 추가
+  thumbnailUrl?: string | string[]; // 직접 thumbnailUrl을 전달할 수 있도록 추가
   siteUrl?: string; // 직접 siteUrl을 전달할 수 있도록 추가
   linkText?: string; // 사이트 링크 버튼에 표시될 텍스트
   questionCategory?: QuestionCategory; // 질문 카테고리
