@@ -41,6 +41,8 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
   const [showBlobBackground, setShowBlobBackground] = useState(false);
   const [videoOpacity, setVideoOpacity] = useState(1);
   const [titleOpacity, setTitleOpacity] = useState(1);
+  const [showIntroCard, setShowIntroCard] = useState(false);
+  const [introCardOpacity, setIntroCardOpacity] = useState(0);
   const [showNewText, setShowNewText] = useState(false);
   const [newTextOpacity, setNewTextOpacity] = useState(0);
   const [showButtons, setShowButtons] = useState(false);
@@ -56,6 +58,8 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
   const arriveTimerRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const thinkingFadeTimerRef = useRef<number | null>(null);
+  const introCardTimerRef = useRef<number | null>(null);
+  const introCardCleanupTimerRef = useRef<number | null>(null);
   // 사전 로드 제거: 필요할 때만 로드 (지연 로드)
   const { playSound } = useSoundManager();
 
@@ -146,36 +150,49 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
   // title fade-out 완료 후 (0.5초 transition) 새 텍스트 표시 및 fade-in
   useEffect(() => {
     if (titleOpacity === 0) {
-      const showNewTextTimer = window.setTimeout(() => {
-        setShowNewText(true);
-        // fade-in 시작
-        setTimeout(() => {
-          setNewTextOpacity(1);
-        }, 50);
+      // 1) 안내 카드(glass morphism) 등장
+      const showIntroTimer = window.setTimeout(() => {
+        setShowIntroCard(true);
+        setIntroCardOpacity(0);
+        window.requestAnimationFrame(() => setIntroCardOpacity(1));
       }, 500); // fade-out transition 완료 대기
 
+      // 2) 안내 카드가 충분히 보인 뒤(2초) 카드 fade-out + 질문/버튼 동시에 fade-in
+      // fade-in(0.8s) 이후 2초 유지 → 총 2.8s 뒤 전환 시작
+      if (introCardTimerRef.current) window.clearTimeout(introCardTimerRef.current);
+      introCardTimerRef.current = window.setTimeout(() => {
+        setIntroCardOpacity(0);
+
+        // 질문 텍스트 + 버튼을 동시에 표시/페이드인
+        setShowNewText(true);
+        setShowButtons(true);
+        setNewTextOpacity(0);
+        setButtonOpacity(0);
+        window.setTimeout(() => {
+          setNewTextOpacity(1);
+          setButtonOpacity(1);
+        }, 50);
+
+        // 카드 DOM 정리 (fade-out 완료 후)
+        if (introCardCleanupTimerRef.current) window.clearTimeout(introCardCleanupTimerRef.current);
+        introCardCleanupTimerRef.current = window.setTimeout(() => {
+          setShowIntroCard(false);
+        }, 900);
+      }, 500 + 800 + 2000);
+
       return () => {
-        window.clearTimeout(showNewTextTimer);
+        window.clearTimeout(showIntroTimer);
+        if (introCardTimerRef.current) {
+          window.clearTimeout(introCardTimerRef.current);
+          introCardTimerRef.current = null;
+        }
+        if (introCardCleanupTimerRef.current) {
+          window.clearTimeout(introCardCleanupTimerRef.current);
+          introCardCleanupTimerRef.current = null;
+        }
       };
     }
   }, [titleOpacity]);
-
-  // 새 텍스트가 나타나면 1초 뒤에 버튼 fade-in 시작
-  useEffect(() => {
-    if (newTextOpacity === 1) {
-      const buttonTimer = window.setTimeout(() => {
-        setShowButtons(true);
-        // fade-in 시작
-        setTimeout(() => {
-          setButtonOpacity(1);
-        }, 50);
-      }, 1000); // 1초 후 버튼 표시
-
-      return () => {
-        window.clearTimeout(buttonTimer);
-      };
-    }
-  }, [newTextOpacity]);
 
   // 버튼 옵션과 wav 파일 매핑
   const getWavFileForOption = (option: string): string | null => {
@@ -308,6 +325,14 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
       if (completeTimerRef.current) {
         window.clearTimeout(completeTimerRef.current);
         completeTimerRef.current = null;
+      }
+      if (introCardTimerRef.current) {
+        window.clearTimeout(introCardTimerRef.current);
+        introCardTimerRef.current = null;
+      }
+      if (introCardCleanupTimerRef.current) {
+        window.clearTimeout(introCardCleanupTimerRef.current);
+        introCardCleanupTimerRef.current = null;
       }
     };
   }, []);
@@ -626,7 +651,7 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
               }}
             >
               <div style={{ marginBottom: '4px' }}>
-                안녕하세요, 이솔입니다.<br />누구와 강남아이즈에<br />방문하셨나요?
+                오늘은 누구와 강남아이즈에<br />방문하셨나요?
               </div>
             </div>
           )}
@@ -662,6 +687,76 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
             </div>
           )}
 
+          {/* 타이틀 이후 안내 카드 (glass morphism) */}
+          {showIntroCard && !selectedOption && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                top: '-150%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                maxWidth: 'min(500px, 92vw)',
+                width: '100%',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '12px',
+                opacity: introCardOpacity,
+                transition: 'opacity 0.8s ease-in-out',
+                pointerEvents: 'none',
+                zIndex: 70,
+              }}
+            >
+              {/* 버튼 그리드와 동일한 크기를 만들기 위한 invisible placeholders */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1 / 1',
+                    borderRadius: '30px',
+                    visibility: 'hidden',
+                  }}
+                />
+              ))}
+
+              {/* 실제 glass 카드 레이어 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '30px',
+                  background:
+                    'linear-gradient(180deg, rgba(255, 255, 255, 0.00) 30%, rgba(255, 255, 255, 0.78) 90%), linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.14) 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.45)',
+                  boxShadow:
+                    '0 18px 36px rgba(36, 82, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.86)',
+                  backdropFilter: 'blur(22px) saturate(1.35)',
+                  WebkitBackdropFilter: 'blur(22px) saturate(1.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '24px',
+                  textAlign: 'center',
+                  color: '#000',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: 'Pretendard Variable',
+                    fontWeight: 400,
+                    lineHeight: '150%',
+                    letterSpacing: '-0.6px',
+                    fontSize: '18px',
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  {'강남구 무역센터 옥외광고 거리의 새 이름\nGANGNAM EYES\n\n대한민국 최초의 디지털 사이니지 거리\n강남아이즈에 오신 걸 환영합니다'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 버튼 영역 (텍스트보다 30px 위에 배치) */}
           {showButtons && !selectedOption && (
             <div
@@ -671,8 +766,8 @@ export default function LandingPageV2({ onComplete, showBlob = true, onSelectOpt
                 // 타이틀 줄 수 변화로 버튼 위치가 크게 흔들릴 수 있음.
                 // (Gangnam/Eyes를 2줄로 고정하면서 부모 높이가 커져 기존 -200%가 과하게 적용됨)
                 top: '-150%',
-                left: 0,
-                right: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: '12px',
