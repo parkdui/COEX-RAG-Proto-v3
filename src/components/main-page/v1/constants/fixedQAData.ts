@@ -64,6 +64,7 @@ export const fixedQAData: FixedQA[] = [
         keywords: ["강남아이즈", "디지털 사이니지", "안내"],
         linkText: "강남아이즈 더 알아보기",
         url: "https://gangnameyes.com/",
+        image: "/QA_Imgs/0-1.png",
       },
       {
         textTemplate:

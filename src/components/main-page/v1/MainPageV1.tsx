@@ -90,6 +90,7 @@ interface MainPageV1Props {
 export default function MainPageV1({ showBlob = true, selectedOnboardingOption = null }: MainPageV1Props = { showBlob: true }) {
   const FIXED_TOP_RECOMMENDATION = '강남아이즈에 대해 더 알고 싶어';
   const GANGNAM_EYES_TOPIC_ID = 'about_gangnam_eyes';
+  const FIXED_QA_MIN_THINKING_MS = 1200;
 
   // 선택 옵션은 첫 질문 로깅에 반드시 필요하므로 ref로 보관 (STT 경로 등 deps 누락/타이밍 이슈 방지)
   const onboardingOptionRef = useRef<string | null>(selectedOnboardingOption);
@@ -105,6 +106,7 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   // 사전 로드 제거: 필요할 때만 로드 (지연 로드)
   const { playSound, stopAllSounds } = useSoundManager();
   const thinkingSoundInstanceRef = useRef<number | null>(null);
+  const thinkingSoundRunIdRef = useRef(0);
   const fixedQa0AudioRef = useRef<HTMLAudioElement | null>(null);
   const [isConversationEnded, setIsConversationEnded] = useState(false);
   const [showEndMessage, setShowEndMessage] = useState(false); // 개발용: true로 설정하여 바로 확인 가능
@@ -965,11 +967,18 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
   );
 
   const respondWithGangnamEyesFixedQA = useCallback(
-    async (sourceQuestion: string) => {
+    async (_sourceQuestion: string) => {
       const topic = fixedQAData.find((t) => t.topicId === GANGNAM_EYES_TOPIC_ID);
       if (!topic || !Array.isArray(topic.answers) || topic.answers.length === 0) {
         return false;
       }
+
+      // thinkingText를 충분히 보여주기 위해 최소 대기 시간 보장
+      await new Promise((resolve) => setTimeout(resolve, FIXED_QA_MIN_THINKING_MS));
+
+      // thinking 상태를 먼저 종료하여 (1) 루핑 사운드 중지 (2) 답변과 겹쳐 보이지 않게 처리
+      chatState.setIsLoading(false);
+      setCustomThinkingText(undefined);
 
       // 고정 답변 플로우에서는 TTS 대신 사전 녹음 wav 사용
       playFixedQa0Wav();
@@ -994,7 +1003,15 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       chatState.setMessageNumber(nextMessageNumber);
       return true;
     },
-    [chatState.messageNumber, chatState.setMessageNumber, playFixedQa0Wav, pushAssistantMessage],
+    [
+      FIXED_QA_MIN_THINKING_MS,
+      chatState.messageNumber,
+      chatState.setIsLoading,
+      chatState.setMessageNumber,
+      playFixedQa0Wav,
+      pushAssistantMessage,
+      setCustomThinkingText,
+    ],
   );
 
   // 스크롤을 맨 아래로 이동
@@ -2448,6 +2465,10 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
 
   // 6. '생각 중이에요' 화면일 때 THINKING_LONG 반복 재생
   useEffect(() => {
+    thinkingSoundRunIdRef.current += 1;
+    const runId = thinkingSoundRunIdRef.current;
+    let cancelled = false;
+
     if (isThinking) {
       // 생각 중일 때 사운드 재생 (반복)
       playSound('THINKING_LONG', { 
@@ -2457,6 +2478,13 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
           // 재생 실패해도 조용히 처리
         },
       }).then((instanceId) => {
+        // isThinking이 짧게 켜졌다가 바로 꺼지는 경우(고정 답변 등) race condition 방지
+        if (cancelled || runId !== thinkingSoundRunIdRef.current || !isThinking) {
+          if (instanceId !== null) {
+            stopAllSounds('THINKING_LONG');
+          }
+          return;
+        }
         if (instanceId !== null) {
           thinkingSoundInstanceRef.current = instanceId;
         }
@@ -2465,18 +2493,15 @@ export default function MainPageV1({ showBlob = true, selectedOnboardingOption =
       });
     } else {
       // 생각 중이 아닐 때 사운드 중지
-      if (thinkingSoundInstanceRef.current !== null) {
-        stopAllSounds('THINKING_LONG');
-        thinkingSoundInstanceRef.current = null;
-      }
+      stopAllSounds('THINKING_LONG');
+      thinkingSoundInstanceRef.current = null;
     }
 
     return () => {
+      cancelled = true;
       // 컴포넌트 언마운트 시 사운드 중지
-      if (thinkingSoundInstanceRef.current !== null) {
-        stopAllSounds('THINKING_LONG');
-        thinkingSoundInstanceRef.current = null;
-      }
+      stopAllSounds('THINKING_LONG');
+      thinkingSoundInstanceRef.current = null;
     };
   }, [isThinking, playSound, stopAllSounds]);
 
